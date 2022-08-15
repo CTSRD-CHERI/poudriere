@@ -844,6 +844,16 @@ install_from_tar() {
 	build_native_xtools
 }
 
+install_packages() {
+	if [ "${OS}" = "CheriBSD" ]; then
+		msg "Installing llvm-base for ${OS} ${VERSION} ${ARCH}"
+		pkg64 -r ${JAILMNT} install -qy llvm-base
+		if [ $? -ne 0 ]; then
+			err 1 "Failed to install llvm-base"
+		fi
+	fi
+}
+
 create_jail() {
 	local IFS
 
@@ -987,6 +997,8 @@ create_jail() {
 	[ -n "${FCT}" ] && ${FCT} version_extra
 
 	jset ${JAILNAME} pkgbase ${BUILD_PKGBASE}
+
+	install_packages
 
 	if [ -r "${SRC_BASE:?}/sys/conf/newvers.sh" ]; then
 		RELEASE=$(update_version "${version_extra}")
