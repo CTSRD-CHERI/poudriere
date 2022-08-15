@@ -2952,6 +2952,7 @@ jail_start() {
 	PORTSDIR="/usr/ports"
 
 	JAIL_OSVERSION=$(awk '/\#define __FreeBSD_version/ { print $3 }' "${mnt}/usr/include/sys/param.h")
+	JAIL_VERSION=$(sed -En 's/^USERLAND_VERSION="([^"]*)"$/\1/p' "${mnt}/bin/freebsd-version")
 
 	if [ ${JAIL_OSVERSION} -lt 900000 ]; then
 		needkld="${needkld} sem"
@@ -3096,7 +3097,7 @@ jail_start() {
 	pwd_mkdb -d "${tomnt}/etc" -p "${tomnt}/etc/master.passwd" || \
 	    err 1 "pwd_mkdb for the jail failed."
 	update_version_env "${tomnt}" "${host_arch}" "${arch}" \
-	    "${version}" "${JAIL_OSVERSION}"
+	    "${JAIL_VERSION}" "${JAIL_OSVERSION}"
 
 	if [ ${JAIL_OSVERSION} -gt ${HOST_OSVERSION} ]; then
 		msg_warn "!!! Jail is newer than host. (Jail: ${JAIL_OSVERSION}, Host: ${HOST_OSVERSION}) !!!"
