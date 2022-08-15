@@ -26,7 +26,9 @@
 #
 # Also note that all protocols supported by fetch(1) are supported here, even
 # file:///
-# Suggested: https://download.FreeBSD.org
+# Suggested one of:
+# https://download.FreeBSD.org
+# https://download.CheriBSD.org
 FREEBSD_HOST=_PROTO_://_CHANGE_THIS_
 
 # By default the jails have no /etc/resolv.conf, you will need to set

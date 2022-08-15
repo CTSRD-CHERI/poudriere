@@ -2621,6 +2621,20 @@ maybe_run_queued() {
 	exit
 }
 
+get_host_os() {
+	[ $# -eq 1 ] || eargs get_host_os var_return
+	local var_return="$1"
+	local _os
+
+	if grep -q '^#define[[:space:]]*__CheriBSD_version' \
+	    /usr/include/sys/param.h; then
+		_os="CheriBSD"
+	else
+		_os="FreeBSD"
+	fi
+	setvar "${var_return}" "${_os}"
+}
+
 get_host_arch() {
 	[ $# -eq 1 ] || eargs get_host_arch var_return
 	local var_return="$1"
@@ -8639,9 +8653,9 @@ svn_git_checkout_method() {
 	else
 		# Compat hacks for FreeBSD's special git server
 		case "${GIT_URL_DEFAULT}" in
-		${FREEBSD_GIT_BASEURL}|${FREEBSD_GIT_PORTSURL})
+		${GIT_BASEURL}|${GIT_PORTSURL})
 			case "${_METHOD}" in
-			git+ssh) url_prefix="${FREEBSD_GIT_SSH_USER}@" ;;
+			git+ssh) url_prefix="${GIT_SSH_USER}@" ;;
 			git) msg_warn "As of 2021-04-08 FreeBSD's git server does not support the git protocol.  Remove -m or try git+https or git+ssh." ;;
 			esac
 			;;
@@ -8736,6 +8750,8 @@ if [ -z "${NO_ZFS}" ]; then
 	zpool list ${ZPOOL} >/dev/null 2>&1 || err 1 "No such zpool: ${ZPOOL}"
 fi
 
+get_host_os HOST_OS
+
 : ${FREEBSD_SVN_HOST:="svn.FreeBSD.org"}
 : ${FREEBSD_GIT_HOST:="git.FreeBSD.org"}
 : ${FREEBSD_GIT_BASEURL:="${FREEBSD_GIT_HOST}/src.git"}
@@ -8743,11 +8759,25 @@ fi
 : ${FREEBSD_HOST:="https://download.FreeBSD.org"}
 : ${FREEBSD_GIT_SSH_USER="anongit"}
 
-: ${SVN_HOST:="${FREEBSD_SVN_HOST}"}
-: ${GIT_HOST:="${FREEBSD_GIT_HOST}"}
-: ${GIT_BASEURL:=${FREEBSD_GIT_BASEURL}}
-# GIT_URL is old compat
-: ${GIT_PORTSURL:=${GIT_URL:-${FREEBSD_GIT_PORTSURL}}}
+: ${CHERIBSD_GIT_HOST:="github.com"}
+: ${CHERIBSD_GIT_BASEURL:="${FREEBSD_GIT_HOST}/CTSRD-CHERI/cheribsd.git"}
+: ${CHERIBSD_GIT_PORTSURL:="${FREEBSD_GIT_HOST}/CTSRD-CHERI/cheribsd-ports.git"}
+: ${CHERIBSD_HOST:="https://download.CheriBSD.org"}
+
+if [ "${HOST_OS}" = "CheriBSD" ]; then
+	: ${GIT_HOST:="${CHERIBSD_GIT_HOST}"}
+	: ${GIT_BASEURL:=${CHERIBSD_GIT_BASEURL}}
+	: ${GIT_PORTSURL:=${CHERIBSD_GIT_PORTSURL}}
+	: ${DOWNLOAD_HOST:=${CHERIBSD_HOST}}
+else
+	: ${SVN_HOST:="${FREEBSD_SVN_HOST}"}
+	: ${GIT_HOST:="${FREEBSD_GIT_HOST}"}
+	: ${GIT_BASEURL:=${FREEBSD_GIT_BASEURL}}
+	# GIT_URL is old compat
+	: ${GIT_PORTSURL:=${GIT_URL:-${FREEBSD_GIT_PORTSURL}}}
+	: ${GIT_SSH_USER:=${FREEBSD_GIT_SSH_USER}}
+	: ${DOWNLOAD_HOST:=${FREEBSD_HOST}}
+fi
 
 if [ -z "${NO_ZFS}" ]; then
 	: ${ZROOTFS="/poudriere"}

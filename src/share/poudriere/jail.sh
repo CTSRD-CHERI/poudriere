@@ -27,6 +27,7 @@
 
 . ${SCRIPTPREFIX}/common.sh
 
+OS="${HOST_OS}"
 METHOD_DEF=http
 
 usage() {
@@ -51,10 +52,13 @@ Options:
     -n            -- Print only jail name (for use with -l)
     -J n          -- Run buildworld in parallel with n jobs.
     -j jailname   -- Specify the jailname
-    -v version    -- Specify which version of FreeBSD to install in the jail.
+    -v version    -- Specify which version of OS to install in the jail.
     -a arch       -- Indicates the TARGET_ARCH of the jail. Such as i386 or
                      amd64. Format of TARGET.TARGET_ARCH is also supported.
                      (Default: same as the host)
+    -o os         -- Specify which OS to install in the jail:
+                     'CheriBSD', 'FreeBSD'.
+                     Default: '${OS}'.
     -f fs         -- FS name (tank/jails/myjail) if fs is "none" then do not
                      create on ZFS.
     -K kernel     -- Build the jail with the kernel
@@ -69,7 +73,7 @@ Options:
     -P patch      -- Specify a patch to apply to the source before building.
     -S srcpath    -- Specify a path to the source tree to be used.
     -D            -- Do a full git clone without --depth (default: --depth=1)
-    -t version    -- Version of FreeBSD to upgrade the jail to.
+    -t version    -- Version of OS to upgrade the jail to.
     -U url        -- Specify a url to fetch the sources (with method git and/or svn).
     -X            -- Do not build and setup native-xtools cross compile tools in jail
                      when building for a different TARGET ARCH than the host.
@@ -90,12 +94,12 @@ EOF
 
 list_jail() {
 	local format
-	local j name version arch method mnt timestamp time
+	local j name os version arch method mnt timestamp time
 
 	if [ ${NAMEONLY} -eq 0 ]; then
-		format='%%-%ds %%-%ds %%-%ds %%-%ds %%-%ds %%s'
+		format='%%-%ds %%-%ds %%-%ds %%-%ds %%-%ds %%-%ds %%s'
 		display_setup "${format}" "-d -k2,2 -k3,3 -k1,1"
-		display_add "JAILNAME" "VERSION" "ARCH" "METHOD" \
+		display_add "JAILNAME" "OS" "VERSION" "ARCH" "METHOD" \
 		    "TIMESTAMP" "PATH"
 	else
 		format='%s'
@@ -109,6 +113,7 @@ list_jail() {
 			_jget version ${name} version
 			_jget version_vcs ${name} version_vcs || \
 			    version_vcs=
+			_jget os ${name} os
 			_jget arch ${name} arch
 			_jget method ${name} method
 			_jget mnt ${name} mnt
@@ -119,7 +124,7 @@ list_jail() {
 			if [ -n "${version_vcs}" ]; then
 				version="${version} ${version_vcs}"
 			fi
-			display_add "${name}" "${version}" "${arch}" \
+			display_add "${name}" "${os}" "${version}" "${arch}" \
 			    "${method}" "${time}" "${mnt}"
 		else
 			display_add ${name}
@@ -692,7 +697,7 @@ install_from_ftp() {
 
 	case "${V}" in
 	[0-8][^0-9]*) # < 9
-		msg "Fetching sets for FreeBSD ${V} ${ARCH}"
+		msg "Fetching sets for ${OS} ${V} ${ARCH}"
 		case ${METHOD} in
 		ftp|http|gjb)
 			case ${VERSION} in
@@ -703,8 +708,8 @@ install_from_ftp() {
 			# Check that the defaults have been changed
 			echo ${FREEBSD_HOST} | egrep -E "(_PROTO_|_CHANGE_THIS_)" > /dev/null
 			if [ $? -eq 0 ]; then
-				msg "FREEBSD_HOST from config invalid; defaulting to https://download.FreeBSD.org"
-				FREEBSD_HOST="https://download.FreeBSD.org"
+				msg "FREEBSD_HOST from config invalid; defaulting to ${DOWNLOAD_HOST}"
+				FREEBSD_HOST="${DOWNLOAD_HOST}"
 			fi
 			case $(echo "${FREEBSD_HOST}" | \
 			    tr '[:upper:]' '[:lower:]') in
@@ -766,12 +771,15 @@ install_from_ftp() {
 				# Check that the defaults have been changed
 				echo ${FREEBSD_HOST} | egrep -E "(_PROTO_|_CHANGE_THIS_)" > /dev/null
 				if [ $? -eq 0 ]; then
-					msg "FREEBSD_HOST from config invalid; defaulting to https://download.FreeBSD.org"
-					FREEBSD_HOST="https://download.FreeBSD.org"
+					msg "FREEBSD_HOST from config invalid; defaulting to ${DOWNLOAD_HOST}"
+					FREEBSD_HOST="${DOWNLOAD_HOST}"
 				fi
 
 				case $(echo "${FREEBSD_HOST}" | \
 				    tr '[:upper:]' '[:lower:]') in
+					*download.cheribsd.org)
+						URL="${FREEBSD_HOST}/${type}/${ARCH%%.*}/${ARCH##*.}/${V}/ftp"
+						;;
 					*download.freebsd.org)
 						URL="${FREEBSD_HOST}/${type}/${ARCH%%.*}/${ARCH##*.}/${V}"
 						;;
@@ -789,10 +797,10 @@ install_from_ftp() {
 		# Copy release MANIFEST from the preinstalled set if we have it;
 		# if not, download it.
 		if [ -f ${SCRIPTPREFIX}/MANIFESTS/${ARCH%%.*}-${ARCH##*.}-${V} ]; then
-			msg "Using pre-distributed MANIFEST for FreeBSD ${V} ${ARCH}"
+			msg "Using pre-distributed MANIFEST for ${OS} ${V} ${ARCH}"
 			cp ${SCRIPTPREFIX}/MANIFESTS/${ARCH%%.*}-${ARCH##*.}-${V} ${JAILMNT}/fromftp/MANIFEST
 		else
-			msg "Fetching MANIFEST for FreeBSD ${V} ${ARCH}"
+			msg "Fetching MANIFEST for ${OS} ${V} ${ARCH}"
 			fetch_file ${JAILMNT}/fromftp/MANIFEST ${URL}/MANIFEST
 		fi
 
@@ -806,7 +814,7 @@ install_from_ftp() {
 			    $1 == dist {ret=0;exit} \
 			    END {exit ret} \
 			    ' "${JAILMNT}/fromftp/MANIFEST" || continue
-			msg "Fetching ${dist} for FreeBSD ${V} ${ARCH}"
+			msg "Fetching ${dist} for ${OS} ${V} ${ARCH}"
 			fetch_file "${JAILMNT}/fromftp/${dist}.txz" "${URL}/${dist}.txz"
 			MHASH="$(awk -vdist="${dist}.txz" '$1 == dist { print $2 }' ${JAILMNT}/fromftp/MANIFEST)"
 			FHASH="$(sha256 -q ${JAILMNT}/fromftp/${dist}.txz)"
@@ -963,6 +971,7 @@ create_jail() {
 		jset ${JAILNAME} version ${VERSION}
 	fi
 	jset ${JAILNAME} timestamp $(clock -epoch)
+	jset ${JAILNAME} os ${OS}
 	jset ${JAILNAME} arch ${ARCH}
 	jset ${JAILNAME} mnt ${JAILMNT}
 	[ -n "$SRCPATH" ] && jset ${JAILNAME} srcpath ${SRCPATH}
@@ -1136,6 +1145,9 @@ while getopts "bBiJ:j:v:a:z:m:nf:M:sdkK:lqcip:r:uU:t:z:P:S:DxXC:y" FLAG; do
 			;;
 		n)
 			NAMEONLY=1
+			;;
+		o)
+			OS=${OPTARG}
 			;;
 		f)
 			JAILFS=${OPTARG}
