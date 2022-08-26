@@ -767,7 +767,7 @@ install_from_ftp() {
 		case ${METHOD} in
 			ftp|http|gjb)
 				case ${VERSION} in
-					*-CURRENT|*-ALPHA*|*-PRERELEASE|*-STABLE) type=snapshots ;;
+					dev|main|*-CURRENT|*-ALPHA*|*-PRERELEASE|*-STABLE) type=snapshots ;;
 					*) type=releases ;;
 				esac
 
@@ -781,7 +781,11 @@ install_from_ftp() {
 				case $(echo "${FREEBSD_HOST}" | \
 				    tr '[:upper:]' '[:lower:]') in
 					*download.cheribsd.org)
-						URL="${FREEBSD_HOST}/${type}/${ARCH%%.*}/${ARCH##*.}/${V}/ftp"
+						if [ "${type}" = "snapshots" ]; then
+							URL="${FREEBSD_HOST}/${type}/${V}/${ARCH%%.*}/${ARCH##*.}/latest/ftp"
+						else
+							URL="${FREEBSD_HOST}/${type}/${ARCH%%.*}/${ARCH##*.}/${V}/ftp"
+						fi
 						;;
 					*download.freebsd.org)
 						URL="${FREEBSD_HOST}/${type}/${ARCH%%.*}/${ARCH##*.}/${V}"
