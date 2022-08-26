@@ -8761,8 +8761,8 @@ get_host_os HOST_OS
 : ${FREEBSD_GIT_SSH_USER="anongit"}
 
 : ${CHERIBSD_GIT_HOST:="github.com"}
-: ${CHERIBSD_GIT_BASEURL:="${FREEBSD_GIT_HOST}/CTSRD-CHERI/cheribsd.git"}
-: ${CHERIBSD_GIT_PORTSURL:="${FREEBSD_GIT_HOST}/CTSRD-CHERI/cheribsd-ports.git"}
+: ${CHERIBSD_GIT_BASEURL:="${CHERIBSD_GIT_HOST}/CTSRD-CHERI/cheribsd.git"}
+: ${CHERIBSD_GIT_PORTSURL:="${CHERIBSD_GIT_HOST}/CTSRD-CHERI/cheribsd-ports.git"}
 : ${CHERIBSD_HOST:="https://download.CheriBSD.org"}
 
 if [ "${HOST_OS}" = "CheriBSD" ]; then
