@@ -1,0 +1,6 @@
+# Use txz instead of tzstd to compress packages.
+# Zstandard is currently broken and we cannot use it for now.
+PKG_COMPRESSION_FORMAT=txz
+
+# Build packages with debug symbols.
+WITH_DEBUG=yes

@@ -1,0 +1,5 @@
+# Forcefully disable unsupported port options:
+# * DOCS - CheriBSD doesn't install man pages;
+# * INFO - print/texlive is broken;
+# * NLS - devel/gettext-tools is broken.
+OPTIONS_UNSET_FORCE+=	DOCS INFO NLS
