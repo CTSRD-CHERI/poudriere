@@ -3138,7 +3138,8 @@ jail_start() {
 		qemu_install "${tomnt}"
 	fi
 	# Handle special ARM64 needs
-	if [ "${arch#*.}" = "aarch64" ] && ! [ -f "${tomnt}/usr/bin/ld" ]; then
+	if [ "${arch#*.}" = "aarch64" ] && ! [ -f "${tomnt}/usr/bin/ld" ] &&
+	    [ "${HOST_OS}" != "CheriBSD" ]; then
 		for aarchld in /usr/local/aarch64-*freebsd*/bin/ld; do
 			case "${aarchld}" in
 			"/usr/local/aarch64-*freebsd*/bin/ld")

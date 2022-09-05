@@ -1,0 +1,105 @@
+#!/bin/sh
+
+TOOLCHAIN_ROOT="/toolchain"
+TOOLCHAIN_LOCALBASE="/toolchain/usr/local64"
+TOOLCHAIN_LOCALBIN="${TOOLCHAIN_LOCALBASE}/bin"
+TOOLCHAIN_LOCALLIB="${TOOLCHAIN_LOCALBASE}/lib"
+
+LLVM_PREFIX="${TOOLCHAIN_LOCALBASE}/llvm-morello"
+LLVM_BIN="${LLVM_PREFIX}/bin"
+LLVM_LIB="${LLVM_PREFIX}/lib"
+
+prog=$(basename "${0}")
+arch=$(uname -p)
+arch_cflags=
+arch_objdump_flags=
+case "${arch}" in
+aarch64)
+        arch_cflags="-march=morello -Xclang -morello-vararg=new"
+        arch_objdump_flags="--mattr=+morello"
+        ;;
+aarch64c)
+        arch_cflags="-march=morello -mabi=purecap -Xclang -morello-vararg=new"
+        arch_objdump_flags="--mattr=+morello"
+        ;;
+riscv64)
+        arch_cflags="-march=rv64gcxcheri -mabi=lp64d -mno-relax"
+        ;;
+riscv64c)
+        arch_cflags="-march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
+        ;;
+esac
+
+#
+# Use toolchain binaries and libraries.
+#
+export PATH="${TOOLCHAIN_LOCALBIN}:${PATH}"
+export LD_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib:/lib"
+#
+# Overwrite variables from make.conf so that subprocesses directly utilities.
+#
+export ADDR2LINE="${LLVM_BIN}/llvm-addr2line"
+export AR="${LLVM_BIN}/llvm-ar"
+export CC="${LLVM_BIN}/clang ${arch_cflags}"
+export CPP="${LLVM_BIN}/clang-cpp ${arch_cflags}"
+export CXX="${LLVM_BIN}/clang++ ${arch_cflags}"
+export LD="${LLVM_BIN}/ld.lld"
+export NM="${LLVM_BIN}/llvm-nm"
+export OBJCOPY="${LLVM_BIN}/llvm-objcopy"
+export OBJDUMP="${LLVM_BIN}/llvm-objdump ${arch_objdump_flags}"
+export RANLIB="${LLVM_BIN}/llvm-ranlib"
+export READELF="${LLVM_BIN}/llvm-readelf"
+export SIZE="${LLVM_BIN}/llvm-size"
+export STRINGS="${LLVM_BIN}/llvm-strings"
+export STRIP="${LLVM_BIN}/llvm-strip"
+export XCC="${CC}"
+export XCPP="${CPP}"
+export XCXX="${CXX}"
+
+case "${prog}" in
+addr2line)
+	${ADDR2LINE} "${@}"
+	;;
+ar)
+	${AR} "${@}"
+	;;
+c++|clang++)
+	${CXX} "${@}"
+	;;
+cc|clang)
+	${CC} "${@}"
+	;;
+cpp|clang-cpp)
+	${CPP} "${@}"
+	;;
+ld)
+	${LD} "${@}"
+	;;
+nm)
+	${NM} "${@}"
+	;;
+objcopy)
+	${OBJCOPY} "${@}"
+	;;
+objdump)
+	${OBJDUMP} "${@}"
+	;;
+ranlib)
+	${RANLIB} "${@}"
+	;;
+readelf)
+	${READELF} "${@}"
+	;;
+size)
+	${SIZE} "${@}"
+	;;
+strings)
+	${STRINGS} "${@}"
+	;;
+strip)
+	${STRIP} "${@}"
+	;;
+*)
+	"${TOOLCHAIN_LOCALBIN}/${prog}" "${@}"
+	;;
+esac

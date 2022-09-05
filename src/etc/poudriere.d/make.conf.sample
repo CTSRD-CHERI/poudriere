@@ -1,3 +1,22 @@
+# Use toolchain binaries for the following tools. Note that these variables
+# should be overwritten in /toolchain/bin/wrapper.
+ADDR2LINE=	/toolchain/bin/addr2line
+AR=		/toolchain/bin/ar
+CC=		/toolchain/bin/clang
+CPP=		/toolchain/bin/clang-cpp
+CXX=		/toolchain/bin/clang++
+LD=		/toolchain/bin/ld
+NM=		/toolchain/bin/nm
+OBJCOPY=	/toolchain/bin/objcopy
+OBJDUMP=	/toolchain/bin/objdump
+RANLIB=		/toolchain/bin/ranlib
+READELF=	/toolchain/bin/readelf
+SIZE=		/toolchain/bin/size
+STRINGS=	/toolchain/bin/strings
+XCC=		/toolchain/bin/clang
+XCPP=		/toolchain/bin/clang-cpp
+XCXX=		/toolchain/bin/clang++
+
 # Use txz instead of tzstd to compress packages.
 # Zstandard is currently broken and we cannot use it for now.
 PKG_COMPRESSION_FORMAT=txz
