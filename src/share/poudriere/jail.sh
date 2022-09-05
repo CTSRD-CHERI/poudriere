@@ -456,6 +456,22 @@ setup_build_env() {
 	export SRC_ENV_CONF=${JAILMNT}/etc/src-env.conf
 }
 
+setup_rc_conf() {
+	if [ -f "${JAILMNT}/etc/rc.conf" ]; then
+		rm -f "${JAILMNT}/etc/rc.conf"
+	fi
+	if [ "${OS}" = "CheriBSD" ]; then
+		if [ "${ARCH##*.}" = aarch64 ] ||
+		    [ "${ARCH##*.}" = "riscv64" ]; then
+			cat >"${JAILMNT}/etc/rc.conf" <<EOF
+# aarch64 packages are installed in /usr/local64.
+ldconfig_paths="/usr/lib/compat /usr/local/lib /usr/local/lib/compat/pkg /usr/local64/lib /usr/local64/lib/compat/pkg"
+ldconfig_local_dirs="/usr/local/libdata/ldconfig /usr/local64/libdata/ldconfig"
+EOF
+		fi
+	fi
+}
+
 setup_src_conf() {
 	local src="$1"
 
@@ -1009,6 +1025,8 @@ create_jail() {
 	[ -n "${FCT}" ] && ${FCT} version_extra
 
 	jset ${JAILNAME} pkgbase ${BUILD_PKGBASE}
+
+	setup_rc_conf
 
 	install_toolchain
 
