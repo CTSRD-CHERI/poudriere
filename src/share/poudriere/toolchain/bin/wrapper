@@ -28,13 +28,23 @@ riscv64)
 riscv64c)
         arch_cflags="-march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
         ;;
+*)
+	echo "Unexpected arch: ${arch}." >&2
+	exit 1
 esac
 
 #
 # Use toolchain binaries and libraries.
 #
 export PATH="${TOOLCHAIN_LOCALBIN}:${PATH}"
-export LD_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib:/lib"
+case "${arch}" in
+aarch64|riscv64)
+	export LD_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib"
+	;;
+aarch64c|riscv64c)
+	export LD_64_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib64"
+	;;
+esac
 #
 # Overwrite variables from make.conf so that subprocesses directly utilities.
 #
