@@ -53,6 +53,7 @@ export AR="${LLVM_BIN}/llvm-ar"
 export CC="${LLVM_BIN}/clang ${arch_cflags}"
 export CPP="${LLVM_BIN}/clang-cpp ${arch_cflags}"
 export CXX="${LLVM_BIN}/clang++ ${arch_cflags}"
+export AS="${CC}"
 export LD="${LLVM_BIN}/ld.lld"
 export NM="${LLVM_BIN}/llvm-nm"
 export OBJCOPY="${LLVM_BIN}/llvm-objcopy"
@@ -72,6 +73,9 @@ addr2line)
 	;;
 ar)
 	${AR} "${@}"
+	;;
+as)
+	${AS} "${@}"
 	;;
 c++|clang++)
 	${CXX} "${@}"

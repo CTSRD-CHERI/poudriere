@@ -2,6 +2,7 @@
 # should be overwritten in /toolchain/bin/wrapper.
 ADDR2LINE=	/toolchain/bin/addr2line
 AR=		/toolchain/bin/ar
+AS=		/toolchain/bin/as
 CC=		/toolchain/bin/clang
 CPP=		/toolchain/bin/clang-cpp
 CXX=		/toolchain/bin/clang++
