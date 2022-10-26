@@ -1028,7 +1028,9 @@ create_jail() {
 
 	setup_rc_conf
 
-	install_toolchain
+	if [ "${METHOD}" != "null" ]; then
+		install_toolchain
+	fi
 
 	if [ -r "${SRC_BASE:?}/sys/conf/newvers.sh" ]; then
 		RELEASE=$(update_version "${version_extra}")
