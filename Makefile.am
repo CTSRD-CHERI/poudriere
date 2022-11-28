@@ -19,7 +19,9 @@ datatablesdir= $(assetsdir)/DataTables-1.10.0
 dtcssdir= $(datatablesdir)/css
 dtimagesdir= $(datatablesdir)/images
 dtjsdir= $(datatablesdir)/js
+toolchainbindir= ${pkgdatadir}/toolchain/bin
 rcdir= $(sysconfdir)/rc.d
+poudriereddir= ${sysconfdir}/poudriere.d
 hookdir= $(sysconfdir)/poudriere.d/hooks
 mandir= $(prefix)/man
 examplesdir= $(datadir)/examples/$(PACKAGE_NAME)
@@ -46,13 +48,15 @@ dist_man_MANS=	src/man/poudriere.8 \
 
 dist_sysconf_DATA=	\
 		src/etc/poudriere.conf.sample \
-		src/etc/poudriered.conf.sample \
-		src/etc/poudriere.d/make.conf.sample \
-		src/etc/poudriere.d/cheriabi-make.conf.sample \
-		src/etc/poudriere.d/hybridabi-make.conf.sample
+		src/etc/poudriered.conf.sample
 dist_examples_DATA=	\
 		src/share/examples/poudriere/nginx.conf.sample \
 		src/share/examples/poudriere/httpd.conf.sample
+
+dist_poudriered_DATA=		\
+		src/etc/poudriere.d/make.conf.sample \
+		src/etc/poudriere.d/cheriabi-make.conf.sample \
+		src/etc/poudriere.d/hybridabi-make.conf.sample
 
 dist_hook_DATA=	src/etc/poudriere.d/hooks/bulk.sh.sample \
 		src/etc/poudriere.d/hooks/pkgbuild.sh.sample
@@ -144,6 +148,27 @@ dist_dtimages_DATA=	src/share/poudriere/html/assets/DataTables-1.10.0/images/bac
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_both.png \
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_desc.png \
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_desc_disabled.png
+
+dist_toolchainbin_DATA=	\
+			src/share/poudriere/toolchain/bin/addr2line \
+			src/share/poudriere/toolchain/bin/ar \
+			src/share/poudriere/toolchain/bin/as \
+			src/share/poudriere/toolchain/bin/c++ \
+			src/share/poudriere/toolchain/bin/cc \
+			src/share/poudriere/toolchain/bin/clang++ \
+			src/share/poudriere/toolchain/bin/clang-cpp \
+			src/share/poudriere/toolchain/bin/clang \
+			src/share/poudriere/toolchain/bin/cpp \
+			src/share/poudriere/toolchain/bin/ld \
+			src/share/poudriere/toolchain/bin/nm \
+			src/share/poudriere/toolchain/bin/objcopy \
+			src/share/poudriere/toolchain/bin/objdump \
+			src/share/poudriere/toolchain/bin/ranlib \
+			src/share/poudriere/toolchain/bin/readelf \
+			src/share/poudriere/toolchain/bin/size \
+			src/share/poudriere/toolchain/bin/strings \
+			src/share/poudriere/toolchain/bin/strip \
+			src/share/poudriere/toolchain/bin/wrapper
 
 dist_rc_SCRIPTS=	src/etc/rc.d/poudriered
 
