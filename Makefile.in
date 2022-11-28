@@ -114,7 +114,8 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(dist_btfonts_DATA) $(dist_btjs_DATA) $(dist_dtcss_DATA) \
 	$(dist_dtimages_DATA) $(dist_dtjs_DATA) $(dist_examples_DATA) \
 	$(dist_hook_DATA) $(dist_html_DATA) $(dist_pkgdata_DATA) \
-	$(dist_sysconf_DATA) $(dist_include_HEADERS) \
+	$(dist_poudriered_DATA) $(dist_sysconf_DATA) \
+	$(dist_toolchainbin_DATA) $(dist_include_HEADERS) \
 	$(am__DIST_COMMON)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
@@ -130,7 +131,8 @@ am__installdirs = "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(dtimagesdir)" "$(DESTDIR)$(dtjsdir)" \
 	"$(DESTDIR)$(examplesdir)" "$(DESTDIR)$(hookdir)" \
 	"$(DESTDIR)$(htmldir)" "$(DESTDIR)$(pkgdatadir)" \
-	"$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(includedir)"
+	"$(DESTDIR)$(poudriereddir)" "$(DESTDIR)$(sysconfdir)" \
+	"$(DESTDIR)$(toolchainbindir)" "$(DESTDIR)$(includedir)"
 PROGRAMS = $(pkglibexec_PROGRAMS)
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libnv_la_LIBADD =
@@ -472,7 +474,8 @@ DATA = $(dist_assets_DATA) $(dist_awk_DATA) $(dist_btcss_DATA) \
 	$(dist_btfonts_DATA) $(dist_btjs_DATA) $(dist_dtcss_DATA) \
 	$(dist_dtimages_DATA) $(dist_dtjs_DATA) $(dist_examples_DATA) \
 	$(dist_hook_DATA) $(dist_html_DATA) $(dist_pkgdata_DATA) \
-	$(dist_sysconf_DATA)
+	$(dist_poudriered_DATA) $(dist_sysconf_DATA) \
+	$(dist_toolchainbin_DATA)
 HEADERS = $(dist_include_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
@@ -697,7 +700,9 @@ datatablesdir = $(assetsdir)/DataTables-1.10.0
 dtcssdir = $(datatablesdir)/css
 dtimagesdir = $(datatablesdir)/images
 dtjsdir = $(datatablesdir)/js
+toolchainbindir = ${pkgdatadir}/toolchain/bin
 rcdir = $(sysconfdir)/rc.d
+poudriereddir = ${sysconfdir}/poudriere.d
 hookdir = $(sysconfdir)/poudriere.d/hooks
 examplesdir = $(datadir)/examples/$(PACKAGE_NAME)
 EXTRA_DIST = \
@@ -721,14 +726,16 @@ dist_man_MANS = src/man/poudriere.8 \
 
 dist_sysconf_DATA = \
 		src/etc/poudriere.conf.sample \
-		src/etc/poudriered.conf.sample \
-		src/etc/poudriere.d/make.conf.sample \
-		src/etc/poudriere.d/cheriabi-make.conf.sample \
-		src/etc/poudriere.d/hybridabi-make.conf.sample
+		src/etc/poudriered.conf.sample
 
 dist_examples_DATA = \
 		src/share/examples/poudriere/nginx.conf.sample \
 		src/share/examples/poudriere/httpd.conf.sample
+
+dist_poudriered_DATA = \
+		src/etc/poudriere.d/make.conf.sample \
+		src/etc/poudriere.d/cheriabi-make.conf.sample \
+		src/etc/poudriere.d/hybridabi-make.conf.sample
 
 dist_hook_DATA = src/etc/poudriere.d/hooks/bulk.sh.sample \
 		src/etc/poudriere.d/hooks/pkgbuild.sh.sample
@@ -825,6 +832,27 @@ dist_dtimages_DATA = src/share/poudriere/html/assets/DataTables-1.10.0/images/ba
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_both.png \
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_desc.png \
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_desc_disabled.png
+
+dist_toolchainbin_DATA = \
+			src/share/poudriere/toolchain/bin/addr2line \
+			src/share/poudriere/toolchain/bin/ar \
+			src/share/poudriere/toolchain/bin/as \
+			src/share/poudriere/toolchain/bin/c++ \
+			src/share/poudriere/toolchain/bin/cc \
+			src/share/poudriere/toolchain/bin/clang++ \
+			src/share/poudriere/toolchain/bin/clang-cpp \
+			src/share/poudriere/toolchain/bin/clang \
+			src/share/poudriere/toolchain/bin/cpp \
+			src/share/poudriere/toolchain/bin/ld \
+			src/share/poudriere/toolchain/bin/nm \
+			src/share/poudriere/toolchain/bin/objcopy \
+			src/share/poudriere/toolchain/bin/objdump \
+			src/share/poudriere/toolchain/bin/ranlib \
+			src/share/poudriere/toolchain/bin/readelf \
+			src/share/poudriere/toolchain/bin/size \
+			src/share/poudriere/toolchain/bin/strings \
+			src/share/poudriere/toolchain/bin/strip \
+			src/share/poudriere/toolchain/bin/wrapper
 
 dist_rc_SCRIPTS = src/etc/rc.d/poudriered
 noinst_LTLIBRARIES = libucl.la libnv.la libptsort.la
@@ -3002,6 +3030,27 @@ uninstall-dist_pkgdataDATA:
 	@list='$(dist_pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(pkgdatadir)'; $(am__uninstall_files_from_dir)
+install-dist_poudrieredDATA: $(dist_poudriered_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_poudriered_DATA)'; test -n "$(poudriereddir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(poudriereddir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(poudriereddir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(poudriereddir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(poudriereddir)" || exit $$?; \
+	done
+
+uninstall-dist_poudrieredDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_poudriered_DATA)'; test -n "$(poudriereddir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(poudriereddir)'; $(am__uninstall_files_from_dir)
 install-dist_sysconfDATA: $(dist_sysconf_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
@@ -3023,6 +3072,27 @@ uninstall-dist_sysconfDATA:
 	@list='$(dist_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(sysconfdir)'; $(am__uninstall_files_from_dir)
+install-dist_toolchainbinDATA: $(dist_toolchainbin_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_toolchainbin_DATA)'; test -n "$(toolchainbindir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(toolchainbindir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(toolchainbindir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(toolchainbindir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(toolchainbindir)" || exit $$?; \
+	done
+
+uninstall-dist_toolchainbinDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_toolchainbin_DATA)'; test -n "$(toolchainbindir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(toolchainbindir)'; $(am__uninstall_files_from_dir)
 install-dist_includeHEADERS: $(dist_include_HEADERS)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_include_HEADERS)'; test -n "$(includedir)" || list=; \
@@ -3352,7 +3422,7 @@ all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(SCRIPTS) $(MANS) $(DATA) \
 		$(HEADERS)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(rcdir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(assetsdir)" "$(DESTDIR)$(awkdir)" "$(DESTDIR)$(btcssdir)" "$(DESTDIR)$(btfontsdir)" "$(DESTDIR)$(btjsdir)" "$(DESTDIR)$(dtcssdir)" "$(DESTDIR)$(dtimagesdir)" "$(DESTDIR)$(dtjsdir)" "$(DESTDIR)$(examplesdir)" "$(DESTDIR)$(hookdir)" "$(DESTDIR)$(htmldir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(includedir)"; do \
+	for dir in "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(rcdir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(assetsdir)" "$(DESTDIR)$(awkdir)" "$(DESTDIR)$(btcssdir)" "$(DESTDIR)$(btfontsdir)" "$(DESTDIR)$(btjsdir)" "$(DESTDIR)$(dtcssdir)" "$(DESTDIR)$(dtimagesdir)" "$(DESTDIR)$(dtjsdir)" "$(DESTDIR)$(examplesdir)" "$(DESTDIR)$(hookdir)" "$(DESTDIR)$(htmldir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(poudriereddir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(toolchainbindir)" "$(DESTDIR)$(includedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -3550,7 +3620,9 @@ install-data-am: install-dist_assetsDATA install-dist_awkDATA \
 	install-dist_dtimagesDATA install-dist_dtjsDATA \
 	install-dist_examplesDATA install-dist_hookDATA \
 	install-dist_htmlDATA install-dist_includeHEADERS \
-	install-dist_pkgdataDATA install-dist_rcSCRIPTS install-man
+	install-dist_pkgdataDATA install-dist_poudrieredDATA \
+	install-dist_rcSCRIPTS install-dist_toolchainbinDATA \
+	install-man
 
 install-dvi: install-dvi-recursive
 
@@ -3689,7 +3761,8 @@ uninstall-am: uninstall-dist_assetsDATA uninstall-dist_awkDATA \
 	uninstall-dist_dtjsDATA uninstall-dist_examplesDATA \
 	uninstall-dist_hookDATA uninstall-dist_htmlDATA \
 	uninstall-dist_includeHEADERS uninstall-dist_pkgdataDATA \
-	uninstall-dist_rcSCRIPTS uninstall-dist_sysconfDATA \
+	uninstall-dist_poudrieredDATA uninstall-dist_rcSCRIPTS \
+	uninstall-dist_sysconfDATA uninstall-dist_toolchainbinDATA \
 	uninstall-man uninstall-pkglibexecPROGRAMS
 
 uninstall-man: uninstall-man8
@@ -3713,10 +3786,11 @@ uninstall-man: uninstall-man8
 	install-dist_dtjsDATA install-dist_examplesDATA \
 	install-dist_hookDATA install-dist_htmlDATA \
 	install-dist_includeHEADERS install-dist_pkgdataDATA \
-	install-dist_rcSCRIPTS install-dist_sysconfDATA install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-man8 install-pdf install-pdf-am \
+	install-dist_poudrieredDATA install-dist_rcSCRIPTS \
+	install-dist_sysconfDATA install-dist_toolchainbinDATA \
+	install-dvi install-dvi-am install-exec install-exec-am \
+	install-html install-html-am install-info install-info-am \
+	install-man install-man8 install-pdf install-pdf-am \
 	install-pkglibexecPROGRAMS install-ps install-ps-am \
 	install-strip installcheck installcheck-am installcheck-local \
 	installdirs installdirs-am maintainer-clean \
@@ -3729,8 +3803,9 @@ uninstall-man: uninstall-man8
 	uninstall-dist_dtimagesDATA uninstall-dist_dtjsDATA \
 	uninstall-dist_examplesDATA uninstall-dist_hookDATA \
 	uninstall-dist_htmlDATA uninstall-dist_includeHEADERS \
-	uninstall-dist_pkgdataDATA uninstall-dist_rcSCRIPTS \
-	uninstall-dist_sysconfDATA uninstall-man uninstall-man8 \
+	uninstall-dist_pkgdataDATA uninstall-dist_poudrieredDATA \
+	uninstall-dist_rcSCRIPTS uninstall-dist_sysconfDATA \
+	uninstall-dist_toolchainbinDATA uninstall-man uninstall-man8 \
 	uninstall-pkglibexecPROGRAMS
 
 .PRECIOUS: Makefile
