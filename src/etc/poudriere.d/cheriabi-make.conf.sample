@@ -3,3 +3,7 @@
 # * INFO - print/texlive is broken;
 # * NLS - devel/gettext-tools is broken.
 OPTIONS_UNSET_FORCE+=	DOCS INFO NLS
+
+# Install hybrid ABI replacement packages for ports that aren't adapted for
+# CheriABI yet but are required to build significant packages.
+USE_PACKAGE_64_DEPENDS_ONLY=1
