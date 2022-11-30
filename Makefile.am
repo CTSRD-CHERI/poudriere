@@ -149,7 +149,7 @@ dist_dtimages_DATA=	src/share/poudriere/html/assets/DataTables-1.10.0/images/bac
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_desc.png \
 			src/share/poudriere/html/assets/DataTables-1.10.0/images/sort_desc_disabled.png
 
-dist_toolchainbin_DATA=	\
+dist_toolchainbin_SCRIPTS=	\
 			src/share/poudriere/toolchain/bin/addr2line \
 			src/share/poudriere/toolchain/bin/ar \
 			src/share/poudriere/toolchain/bin/as \
