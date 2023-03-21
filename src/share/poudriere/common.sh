@@ -3713,6 +3713,18 @@ download_from_repo_check_pkg() {
 	echo "${pkgname}" >> "${output}"
 }
 
+download_hybridabi_from_repo() {
+	msg "Hybrid ABI package fetch: bootstrapping pkg64."
+	JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
+	    pkg64 update -f
+
+	hybridset_list | while mapfile_read_loop_redir pkgname; do
+		msg "Hybrid ABI package fetch: installing ${pkgname}."
+		JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
+		    pkg64 install "${pkgname}"
+	done
+}
+
 download_from_repo() {
 	[ $# -eq 0 ] || eargs download_from_repo
 	local pkgname abi originspec listed ignored pkg_bin packagesite
@@ -5529,6 +5541,7 @@ deps_fetch_vars() {
 	local origin _origin_dep_args _dep_args _dep _new_pkg_deps
 	local _origin_flavor _flavor _flavors _dep_arg _new_dep_args
 	local _prefix
+	local _pkg64_deps
 	local _depend_specials=
 
 	originspec_decode "${originspec}" origin _origin_dep_args \
@@ -5583,6 +5596,8 @@ deps_fetch_vars() {
 	    ${_changed_options:+_PRETTY_OPTS='${SELECTED_OPTIONS:@opt@${opt}+@} ${DESELECTED_OPTIONS:@opt@${opt}-@}'} \
 	    ${_changed_options:+'${_PRETTY_OPTS:O:C/(.*)([+-])$/\2\1/}' _selected_options} \
 	    _PDEPS='${PKG_DEPENDS} ${EXTRACT_DEPENDS} ${PATCH_DEPENDS} ${FETCH_DEPENDS} ${BUILD_DEPENDS} ${LIB_DEPENDS} ${RUN_DEPENDS}' \
+	    '${_PDEPS:M*\:pkg64:C,([^:]*):([^:]*):?.*,\2,:C,^${PORTSDIR}/,,:O:u}' \
+	    _pkg64_deps \
 	    '${_PDEPS:C,([^:]*):([^:]*):?.*,\2,:C,^${PORTSDIR}/,,:O:u}' \
 	    _pkg_deps; then
 		msg_error "Error looking up dependencies for ${COLOR_PORT}${originspec}${COLOR_RESET}"
@@ -5744,6 +5759,7 @@ deps_fetch_vars() {
 		    "${_depend_specials}"
 	fi
 	shash_set pkgname-deps "${_pkgname}" "${_pkg_deps}"
+	shash_set pkgname-pkg64_deps "${_pkgname}" "${_pkg64_deps}"
 	# Store for delete_old_pkg with CHECK_CHANGED_DEPS==yes
 	if [ -n "${_lib_depends}" ]; then
 		fixup_dependencies_dep_args _lib_depends \
@@ -7188,7 +7204,9 @@ gather_port_vars_process_depqueue() {
 	local originspec="$1"
 	local origin pkgname deps dep_origin
 	local dep_args dep_originspec dep_flavor queue rdep
+	local dep_pkgname
 	local fd_devnull
+	local pkg64_deps usepkg64
 
 	msg_debug "gather_port_vars_process_depqueue (${COLOR_PORT}${originspec}${COLOR_RESET})"
 
@@ -7197,6 +7215,7 @@ gather_port_vars_process_depqueue() {
 	    err 1 "gather_port_vars_process_depqueue failed to find pkgname for origin ${COLOR_PORT}${originspec}${COLOR_RESET}"
 	shash_get pkgname-deps "${pkgname}" deps || \
 	    err 1 "gather_port_vars_process_depqueue failed to find deps for pkg ${COLOR_PORT}${pkgname}${COLOR_RESET}"
+	shash_get pkgname-pkg64_deps "${pkgname}" pkg64_deps || pkg64_deps=
 
 	# Open /dev/null in case gather_port_vars_process_depqueue_enqueue
 	# uses it, to avoid opening for every dependency.
@@ -7209,6 +7228,20 @@ gather_port_vars_process_depqueue() {
 	for dep_originspec in ${deps}; do
 		originspec_decode "${dep_originspec}" dep_origin \
 		    dep_args dep_flavor
+
+		if hybridset_exists; then
+			port_var_fetch_originspec "${dep_originspec}" \
+			    PKGNAME dep_pkgname
+			port_var_fetch_originspec "${dep_originspec}" \
+			    USE_PKG64 usepkg64
+			if [ "${usepkg64}" -eq 1 ] ||
+			    [ "${pkg64_deps%${dep_originspec}}" != "${pkg64_deps}" ]; then
+				msg_debug "Did not enqueue ${COLOR_PORT}${dep_origin}${COLOR_RESET} rdep=${COLOR_PORT}${rdep}${COLOR_RESET} as it uses a hybrid ABI package instead"
+				hybridset_add "${pkgname}" "${dep_pkgname}"
+				continue
+			fi
+		fi
+
 		# First queue the default origin into the gatherqueue if
 		# needed.  For the -a case we're guaranteed to already
 		# have done this via the category Makefiles.
@@ -7306,6 +7339,14 @@ compute_deps_pkg() {
 	    err 1 "compute_deps_pkg: Error creating queue entry for ${COLOR_PORT}${pkgname}${COLOR_RESET}: There may be a duplicate origin in a category Makefile"
 
 	for dep_originspec in ${deps}; do
+		if ! port_var_fetch_originspec "${dep_originspec}" PKGNAME \
+		    dep_pkgname; then
+			msg_error "compute_deps_pkg failed to lookup pkgname for ${COLOR_PORT}${dep_originspec}${COLOR_RESET} processing package ${COLOR_PORT}${pkgname}${COLOR_RESET} from ${COLOR_PORT}${originspec}${COLOR_RESET}"
+		fi
+		if hybridset_contains "${pkgname}" "${dep_pkgname}"; then
+			msg_debug "compute_deps_pkg: Will use a hybrid ABI package for ${COLOR_PORT}${dep_originspec}${COLOR_RESET} to build ${COLOR_PORT}${pkgname}${COLOR_RESET}"
+			continue
+		fi
 		if ! get_pkgname_from_originspec "${dep_originspec}" \
 		    dep_pkgname; then
 			originspec_decode "${dep_originspec}" dep_origin '' \
@@ -7985,6 +8026,9 @@ prepare_ports() {
 	local cache_dir sflag delete_pkg_list shash_bucket
 
 	pkgqueue_init
+	if [ "$(injail uname -p)" = "aarch64c" ]; then
+		hybridset_init
+	fi
 
 	cd "${MASTER_DATADIR}"
 	[ "${SHASH_VAR_PATH}" = "var/cache" ] || \
@@ -8155,6 +8199,9 @@ prepare_ports() {
 			:> ${log}/.poudriere.ports.skipped
 			:> ${log}/.poudriere.ports.fetched
 			trim_ignored
+		fi
+		if hybridset_exists; then
+			download_hybridabi_from_repo
 		fi
 		download_from_repo
 		if ! ensure_pkg_installed; then
@@ -9116,6 +9163,7 @@ EPOCH_START=$(clock -epoch)
 . ${SCRIPTPREFIX}/include/fs.sh
 . ${SCRIPTPREFIX}/include/pkg.sh
 . ${SCRIPTPREFIX}/include/pkgqueue.sh
+. ${SCRIPTPREFIX}/include/hybridset.sh
 
 if [ -z "${LOIP6}" -a -z "${LOIP4}" ]; then
 	msg_warn "No loopback address defined, consider setting LOIP6/LOIP4 or assigning a loopback address to the jail."
