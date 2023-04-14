@@ -2648,6 +2648,23 @@ get_host_arch() {
 	setvar "${var_return}" "${_arch}"
 }
 
+get_host_abi() {
+	[ $# -eq 1 ] || eargs get_host_abi var_return
+	local var_return="$1"
+	local _arch
+
+	get_host_arch _arch
+	case "${_arch}" in
+	aarch64*c*|riscv*c*)
+		_abi="purecap"
+		;;
+	*)
+		_abi=""
+		;;
+	esac
+	setvar "${var_return}" "${_abi}"
+}
+
 check_emulation() {
 	[ $# -eq 2 ] || eargs check_emulation real_arch wanted_arch
 	local real_arch="${1}"
@@ -3713,16 +3730,50 @@ download_from_repo_check_pkg() {
 	echo "${pkgname}" >> "${output}"
 }
 
-download_hybridabi_from_repo() {
-	msg "Hybrid ABI package fetch: bootstrapping pkg64."
-	JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
-	    pkg64 update -f
+download_hybridset_from_repo() {
+	local host_abi
+	local oldpkgname pkgname
+
+	get_host_abi host_abi
+
+	if [ "${host_abi}" = "purecap" ]; then
+		msg "Hybrid ABI package fetch: bootstrapping pkg64."
+		JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
+		    pkg64 update -f
+	else
+		msg "Hybrid ABI package fetch: bootstrapping host pkg."
+		env ASSUME_ALWAYS_YES=yes \
+		    ABI_FILE=/usr/bin/uname \
+		    IGNORE_OSVERSION=yes \
+		    PKG_DBDIR="${MASTERMNT}/var/db/pkg64" \
+		    PKG_CACHEDIR="${MASTERMNT}/var/cache/pkg64" \
+		    pkg -r "${MASTERMNT}/toolchain" update -f
+	fi
 
 	hybridset_list | while mapfile_read_loop_redir pkgname; do
 		msg "Hybrid ABI package fetch: installing ${pkgname}."
-		JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
-		    pkg64 install "${pkgname}"
+		if [ "${host_abi}" = "purecap" ]; then
+			JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
+			    pkg64 install "${pkgname}"
+		else
+			# Install replacement packages from pkg.CheriBSD.org
+			# that are compiled for the host and will be installed
+			# in /usr/local64.
+			env ASSUME_ALWAYS_YES=yes \
+			    ABI_FILE=/usr/bin/uname \
+			    IGNORE_OSVERSION=yes \
+			    PKG_DBDIR="${MASTERMNT}/var/db/pkg64" \
+			    PKG_CACHEDIR="${MASTERMNT}/var/cache/pkg64" \
+			    pkg \
+			    -r "${MASTERMNT}" \
+			    -R "${MASTERMNT}/etc/pkg64" \
+			    install "${pkgname}"
+		fi
 	done
+
+	# Regenerate hints files for installed packages.
+	injail service ldconfig start >/dev/null || \
+	    err 1 "Failed to set ldconfig paths."
 }
 
 download_from_repo() {
@@ -8201,7 +8252,7 @@ prepare_ports() {
 			trim_ignored
 		fi
 		if hybridset_exists; then
-			download_hybridabi_from_repo
+			download_hybridset_from_repo
 		fi
 		download_from_repo
 		if ! ensure_pkg_installed; then
