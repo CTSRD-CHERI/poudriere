@@ -99,6 +99,7 @@ dist_include_HEADERS= \
 			src/share/poudriere/include/html.sh \
 			src/share/poudriere/include/hash.sh \
 			src/share/poudriere/include/fs.sh \
+			src/share/poudriere/include/hybridset.sh \
 			src/share/poudriere/include/parallel.sh \
 			src/share/poudriere/include/pkg.sh \
 			src/share/poudriere/include/pkgqueue.sh \
