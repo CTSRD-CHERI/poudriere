@@ -2651,10 +2651,10 @@ get_host_arch() {
 get_host_abi() {
 	[ $# -eq 1 ] || eargs get_host_abi var_return
 	local var_return="$1"
-	local _arch
+	local _host_arch
 
-	get_host_arch _arch
-	case "${_arch}" in
+	get_host_arch _host_arch
+	case "${_host_arch#*.}" in
 	aarch64*c*|riscv*c*)
 		_abi="purecap"
 		;;
