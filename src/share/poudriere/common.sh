@@ -3778,6 +3778,7 @@ download_hybridset_from_repo() {
 
 download_from_repo() {
 	[ $# -eq 0 ] || eargs download_from_repo
+	local arch os pkg_cmd
 	local pkgname abi originspec listed ignored pkg_bin packagesite
 	local packagesite_resolved
 	local remote_all_pkgs remote_all_options wantedpkgs remote_all_deps
@@ -3852,15 +3853,25 @@ download_from_repo() {
 		return
 	fi
 
+	_jget arch ${JAILNAME} arch || err 1 "Missing arch metadata for jail"
+	_jget os ${JAILNAME} os || err 1 "Missing os metadata for jail"
+
+	pkg_cmd="pkg"
+	case "${arch#*.}" in
+	aarch64*c*|riscv64*c*)
+		pkg_cmd="${pkg_cmd}64c"
+		;;
+	esac
+
 	if ensure_pkg_installed; then
 		pkg_bin="${PKG_BIN}"
 	else
 		# Will bootstrap
-		msg "Packge fetch: bootstrapping pkg"
-		pkg_bin="pkg"
+		msg "Packge fetch: bootstrapping ${pkg_cmd}"
+		pkg_bin="${pkg_cmd}"
 	fi
 	cat >> "${MASTERMNT}/etc/pkg/poudriere.conf" <<-EOF
-	FreeBSD: {
+	${os}: {
 	        url: ${packagesite};
 	}
 	EOF
@@ -3959,7 +3970,7 @@ download_from_repo() {
 	umountfs "${MASTERMNT}/var/cache/pkg"
 	rm -f "${wantedpkgs}"
 	# Bootstrapped.  Need to setup symlinks.
-	if [ "${pkg_bin}" = "pkg" ]; then
+	if [ "${pkg_bin}" = "${pkg_cmd}" ]; then
 		# Save the bootstrapped pkg for package sanity/version checking
 		cp -f "${MASTERMNT}${LOCALBASE:-/usr/local}/sbin/pkg-static" \
 		    "${MASTERMNT}${PKG_BIN}"
