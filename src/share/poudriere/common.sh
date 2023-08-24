@@ -5844,7 +5844,9 @@ deps_fetch_vars() {
 
 ensure_pkg_installed() {
 	local force="$1"
-	local host_ver injail_ver mnt
+	local host_ver injail_ver mnt os
+
+	_jget os "${JAILNAME}" os || err 1 "Missing os metadata for jail"
 
 	_my_path mnt
 	[ -n "${PKG_BIN}" ] || err 1 "ensure_pkg_installed: empty PKG_BIN"
@@ -5853,6 +5855,7 @@ ensure_pkg_installed() {
 	fi
 	# Hack, speed up QEMU usage on pkg-repo.
 	if [ ${QEMU_EMULATING} -eq 1 ] && \
+	    [ "${os}" = "${HOST_OS}" ] &&
 	    [ -x /usr/local/sbin/pkg-static ] &&
 	    [ -r "${MASTERMNT}/packages/Latest/pkg.${PKG_EXT}" ]; then
 		injail_ver=$(realpath "${MASTERMNT}/packages/Latest/pkg.${PKG_EXT}")
