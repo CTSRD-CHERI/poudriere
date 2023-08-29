@@ -2939,7 +2939,7 @@ jail_start() {
 	local name=$1
 	local ptname=$2
 	local setname=$3
-	local arch host_arch version
+	local arch host_arch os version
 	local mnt
 	local needfs="${NULLFSREF}"
 	local needkld kldpair kld kldmodname
@@ -2957,6 +2957,7 @@ jail_start() {
 	else
 		_mastermnt tomnt
 	fi
+	_jget os ${name} os || err 1 "Missing os metadata for jail"
 	_jget arch ${name} arch || err 1 "Missing arch metadata for jail"
 	get_host_arch host_arch
 	_jget mnt ${name} mnt || err 1 "Missing mnt metadata for jail"
@@ -3203,6 +3204,11 @@ jail_start() {
 	if [ -n "${RESOLV_CONF}" ]; then
 		cp -v "${RESOLV_CONF}" "${tomnt}/etc/"
 	fi
+
+	if [ "${os}" = "CheriBSD" ]; then
+		download_toolchain_from_repo
+	fi
+
 	msg "Starting jail ${MASTERNAME}"
 	jstart
 	# Safe to release the lock now as jail_runs() will block further bulks.
@@ -3730,45 +3736,46 @@ download_from_repo_check_pkg() {
 	echo "${pkgname}" >> "${output}"
 }
 
-download_hybridset_from_repo() {
-	local host_abi
-	local oldpkgname pkgname
+download_toolchain_from_repo() {
+	local arch os version
 
-	get_host_abi host_abi
+	_jget os ${JAILNAME} os || err 1 "Missing os metadata for jail"
+	[ "${os}" = "CheriBSD" ] || err 1 "Unexpected OS: ${os}"
+	_jget version ${JAILNAME} version || err 1 "Missing os metadata for jail"
+	_jget arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
 
-	if [ "${host_abi}" = "purecap" ]; then
-		msg "Hybrid ABI package fetch: bootstrapping pkg64."
-		JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
-		    pkg64 update -f
-	else
-		msg "Hybrid ABI package fetch: bootstrapping host pkg."
-		env ASSUME_ALWAYS_YES=yes \
-		    ABI_FILE=/usr/bin/uname \
-		    IGNORE_OSVERSION=yes \
-		    PKG_DBDIR="${MASTERMNT}/var/db/pkg64" \
-		    PKG_CACHEDIR="${MASTERMNT}/var/cache/pkg64" \
-		    pkg -r "${MASTERMNT}/toolchain" update -f
+	msg "Installing toolchain for ${os} ${version} ${arch}"
+
+	cp -a "${SCRIPTPREFIX}/toolchain" "${MASTERMNT}/toolchain"
+	mkdir -p "${MASTERMNT}/toolchain/usr/share/keys/pkg"
+	cp -a "${MASTERMNT}/usr/share/keys/pkg/trusted" \
+	    "${MASTERMNT}/toolchain/usr/share/keys/pkg/trusted"
+
+	case "${arch#*.}" in
+	aarch64*)
+		toolchain="llvm-morello"
+		;;
+	riscv64*)
+		toolchain="llvm-cheri"
+		;;
+	*)
+		err 1 "Unexpected architecture: ${arch}"
+		;;
+	esac
+	hybridset_pkgcmd "${MASTERMNT}" "/toolchain" install -q "${toolchain}"
+	if [ $? -ne 0 ]; then
+		err 1 "Failed to install llvm-morello"
 	fi
+	hybridset_pkgcmd "${MASTERMNT}" "/toolchain" clean -aq
+}
+
+download_hybridset_from_repo() {
+	local oldpkgname pkgname
 
 	hybridset_list | while mapfile_read_loop_redir pkgname; do
 		msg "Hybrid ABI package fetch: installing ${pkgname}."
-		if [ "${host_abi}" = "purecap" ]; then
-			JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes \
-			    pkg64 install "${pkgname}"
-		else
-			# Install replacement packages from pkg.CheriBSD.org
-			# that are compiled for the host and will be installed
-			# in /usr/local64.
-			env ASSUME_ALWAYS_YES=yes \
-			    ABI_FILE=/usr/bin/uname \
-			    IGNORE_OSVERSION=yes \
-			    PKG_DBDIR="${MASTERMNT}/var/db/pkg64" \
-			    PKG_CACHEDIR="${MASTERMNT}/var/cache/pkg64" \
-			    pkg \
-			    -r "${MASTERMNT}" \
-			    -R "${MASTERMNT}/etc/pkg64" \
-			    install "${pkgname}"
-		fi
+
+		hybridset_pkgcmd "${MASTERMNT}" "/" install -q "${pkgname}"
 	done
 
 	# Regenerate hints files for installed packages.

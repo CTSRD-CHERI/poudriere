@@ -867,21 +867,6 @@ install_from_tar() {
 	build_native_xtools
 }
 
-install_toolchain() {
-	if [ "${OS}" = "CheriBSD" ]; then
-		msg "Installing toolchain for ${OS} ${VERSION} ${ARCH}"
-		cp -a "${SCRIPTPREFIX}/toolchain" "${JAILMNT}/toolchain"
-		mkdir -p "${JAILMNT}/toolchain/usr/share/keys/pkg"
-		cp -a "${JAILMNT}/usr/share/keys/pkg/trusted" \
-		    "${JAILMNT}/toolchain/usr/share/keys/pkg/trusted"
-		pkg64 -r "${JAILMNT}/toolchain" install -qy llvm-base
-		if [ $? -ne 0 ]; then
-			err 1 "Failed to install llvm-base"
-		fi
-		sudo pkg64 -r "${JAILMNT}/toolchain" clean -aqy
-	fi
-}
-
 create_jail() {
 	local IFS
 
@@ -1027,10 +1012,6 @@ create_jail() {
 	jset ${JAILNAME} pkgbase ${BUILD_PKGBASE}
 
 	setup_rc_conf
-
-	if [ "${METHOD}" != "null" ]; then
-		install_toolchain
-	fi
 
 	if [ -r "${SRC_BASE:?}/sys/conf/newvers.sh" ]; then
 		RELEASE=$(update_version "${version_extra}")

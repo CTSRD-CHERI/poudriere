@@ -68,3 +68,31 @@ hybridset_list() {
 
 	(cd "${MASTER_DATADIR_ABS}" && find "hybridset" -type d -depth 2 | cut -d / -f 3 | sort -u)
 }
+
+hybridset_pkgcmd() {
+	[ $# -ge 2 ] || eargs hybridset_pkgcmd rootdir pkgrootdir
+	local rootdir="$1"
+	local pkgrootdir="$2"
+	shift 2
+	local host_abi
+	local pkgcmd
+
+	get_host_abi host_abi
+	if [ "${host_abi}" = "purecap" ]; then
+		pkgcmd="pkg64"
+		abifile="/usr/sbin/pkg64"
+	else
+		pkgcmd="pkg"
+		abifile="/usr/bin/uname"
+	fi
+
+	env ABI_FILE="${abifile}" \
+	    IGNORE_OSVERSION=yes \
+	    PKG_DBDIR="${rootdir}${pkgrootdir}/var/db/pkg64" \
+	    PKG_CACHEDIR="${rootdir}${pkgrootdir}/var/cache/pkg64" \
+	    ASSUME_ALWAYS_YES=yes \
+	    ${pkgcmd} \
+	    -R "${rootdir}/etc/pkg64" \
+	    -r "${rootdir}${pkgrootdir}" \
+	    "${@}"
+}
