@@ -3207,6 +3207,7 @@ jail_start() {
 
 	if [ "${os}" = "CheriBSD" ]; then
 		download_toolchain_from_repo
+		download_hybridset_pkg_from_repo
 	fi
 
 	msg "Starting jail ${MASTERNAME}"
@@ -3767,6 +3768,31 @@ download_toolchain_from_repo() {
 		err 1 "Failed to install llvm-morello"
 	fi
 	hybridset_pkgcmd "${MASTERMNT}" "/toolchain" clean -aq
+}
+
+download_hybridset_pkg_from_repo() {
+	local arch host_abi pkgabi pkgcmd
+
+	msg "Bootstrapping hybrid ABI pkg."
+
+	hybridset_pkgcmd "${MASTERMNT}" "/" install -q pkg
+	hybridset_pkgcmd "${MASTERMNT}" "/" update -q
+
+	get_host_abi host_abi
+	if [ "${host_abi}" = "purecap" ]; then
+		pkgcmd="pkg64"
+	else
+		pkgcmd="pkg"
+	fi
+
+	pkgabi=$(${pkgcmd} config ABI)
+	if [ -z "${pkgabi}" ]; then
+		err 1 "Failure looking up host pkg ABI"
+	fi
+
+	# Update pkg.conf to use the host ABI for hybrid ABI packages.
+	sed -i '' "s/^#ABI = .*$/ABI=${pkgabi}/" \
+	    "${MASTERMNT}/usr/local64/etc/pkg.conf"
 }
 
 download_hybridset_from_repo() {
