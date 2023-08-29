@@ -66,5 +66,5 @@ hybridset_list() {
 	_datadir_exists hybridset_list
 	[ $# -eq 0 ] || eargs hybridset_list
 
-	(cd "${MASTER_DATADIR_ABS}" && find "hybridset" -type d -depth 2 | cut -d / -f 3)
+	(cd "${MASTER_DATADIR_ABS}" && find "hybridset" -type d -depth 2 | cut -d / -f 3 | sort -u)
 }
