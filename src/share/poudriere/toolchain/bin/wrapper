@@ -22,34 +22,34 @@ arch_cflags=
 arch_objdump_flags=
 case "${arch}" in
 aarch64)
-        if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
-                vararg_flags=""
-        else
-                vararg_flags="-Xclang -morello-vararg=new"
-        fi
-        arch_cflags="-march=morello ${vararg_flags}"
-        arch_objdump_flags="--mattr=+morello"
-        ;;
+	if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
+		vararg_flags=""
+	else
+		vararg_flags="-Xclang -morello-vararg=new"
+	fi
+	arch_cflags="-march=morello ${vararg_flags}"
+	arch_objdump_flags="--mattr=+morello"
+	;;
 aarch64c)
-        if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
-                tls_flags="-femulated-tls"
-                vararg_flags=""
-        elif [ "${CHERIBSD_VERSION}" -le 20220828 ]; then
-                tls_flags=""
-                vararg_flags="-Xclang -morello-vararg=new"
-        else
-                tls_flags=""
-                vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
-        fi
-        arch_cflags="-march=morello -mabi=purecap ${tls_flags} ${vararg_flags}"
-        arch_objdump_flags="--mattr=+morello"
-        ;;
+	if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
+		tls_flags="-femulated-tls"
+		vararg_flags=""
+	elif [ "${CHERIBSD_VERSION}" -le 20220828 ]; then
+		tls_flags=""
+		vararg_flags="-Xclang -morello-vararg=new"
+	else
+		tls_flags=""
+		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
+	fi
+	arch_cflags="-march=morello -mabi=purecap ${tls_flags} ${vararg_flags}"
+	arch_objdump_flags="--mattr=+morello"
+	;;
 riscv64)
-        arch_cflags="-march=rv64gcxcheri -mabi=lp64d -mno-relax"
-        ;;
+	arch_cflags="-march=rv64gcxcheri -mabi=lp64d -mno-relax"
+	;;
 riscv64c)
-        arch_cflags="-march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
-        ;;
+	arch_cflags="-march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
+	;;
 *)
 	echo "Unexpected arch: ${arch}." >&2
 	exit 1
