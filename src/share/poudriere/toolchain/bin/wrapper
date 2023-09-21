@@ -1,5 +1,12 @@
 #!/bin/sh
 
+if [ -z "${CHERIBSD_VERSION}" ]; then
+	CHERIBSD_VERSION=$(awk '/^#define[[:space:]]+__CheriBSD_version/{print $3}' /usr/include/sys/param.h)
+fi
+if [ -z "${CHERIBSD_VERSION}" ]; then
+	CHERIBSD_VERSION=0
+fi
+
 TOOLCHAIN_ROOT="/toolchain"
 TOOLCHAIN_LOCALBASE="/toolchain/usr/local64"
 TOOLCHAIN_LOCALBIN="${TOOLCHAIN_LOCALBASE}/bin"
@@ -15,11 +22,26 @@ arch_cflags=
 arch_objdump_flags=
 case "${arch}" in
 aarch64)
-        arch_cflags="-march=morello -Xclang -morello-vararg=new"
+        if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
+                vararg_flags=""
+        else
+                vararg_flags="-Xclang -morello-vararg=new"
+        fi
+        arch_cflags="-march=morello ${vararg_flags}"
         arch_objdump_flags="--mattr=+morello"
         ;;
 aarch64c)
-        arch_cflags="-march=morello -mabi=purecap -Xclang -morello-vararg=new"
+        if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
+                tls_flags="-femulated-tls"
+                vararg_flags=""
+        elif [ "${CHERIBSD_VERSION}" -le 20220828 ]; then
+                tls_flags=""
+                vararg_flags="-Xclang -morello-vararg=new"
+        else
+                tls_flags=""
+                vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
+        fi
+        arch_cflags="-march=morello -mabi=purecap ${tls_flags} ${vararg_flags}"
         arch_objdump_flags="--mattr=+morello"
         ;;
 riscv64)
