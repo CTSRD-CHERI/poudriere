@@ -1,5 +1,10 @@
 #!/bin/sh
 
+die() {
+	echo "${*}" >&2
+	exit 1
+}
+
 if [ -z "${CHERIBSD_VERSION}" ]; then
 	CHERIBSD_VERSION=$(awk '/^#define[[:space:]]+__CheriBSD_version/{print $3}' /usr/include/sys/param.h)
 fi
@@ -48,6 +53,13 @@ aarch64c)
 	arch_cflags="-march=morello -mabi=purecap ${tls_flags} ${vararg_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
+aarch64cb)
+	if [ "${CHERIBSD_VERSION}" -lt 20230804 ]; then
+		die "Unexpected CheriBSD version for the benchmark ABI: ${CHERIBSD_VERSION}."
+	fi
+	arch_cflags="-march=morello -mabi=purecap-benchmark -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
+	arch_objdump_flags="--mattr=+morello"
+	;;
 riscv64)
 	arch_cflags="-march=rv64gcxcheri -mabi=lp64d -mno-relax"
 	;;
@@ -55,8 +67,7 @@ riscv64c)
 	arch_cflags="-march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
 	;;
 *)
-	echo "Unexpected arch: ${arch}." >&2
-	exit 1
+	die "Unexpected arch: ${arch}."
 esac
 
 #
