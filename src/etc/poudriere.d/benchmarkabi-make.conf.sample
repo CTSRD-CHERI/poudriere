@@ -1,0 +1,29 @@
+# There are no releases with the base system built for the benchmark ABI, and
+# hence an aarch64c image with lib64cb is used instead for the benchmark ABI.
+#
+# Overwrite variables to indicate the packages should be built for the benchmark
+# ABI: ARCH is used by ports while MACHINE_ARCH by bsd.cpu.mk to determine
+# compiler flags. Additionally, export the variables in configure and make
+# environments to pass them to the toolchain wrapper that can be executed as
+# part of configure and build stages.
+ARCH=		aarch64cb
+MACHINE_ARCH=	${ARCH}
+CONFIGURE_ENV+=	MACHINE_ARCH="${MACHINE_ARCH}"
+MAKE_ENV+=	MACHINE_ARCH="${MACHINE_ARCH}"
+
+# Install aarch64 packages in a separate LOCALBASE.
+LOCALBASE=/usr/local64cb
+
+# Use programs from bin and sbin in LOCALBASE.
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:${LOCALBASE}/sbin:${LOCALBASE}/bin
+.export PATH
+
+# Forcefully disable unsupported port options:
+# * DOCS - CheriBSD doesn't install man pages;
+# * INFO - print/texlive is broken;
+# * NLS - devel/gettext-tools is broken.
+OPTIONS_UNSET_FORCE+=	DOCS INFO NLS
+
+# Install hybrid ABI replacement packages for ports that aren't adapted for
+# CheriABI yet but are required to build significant packages.
+USE_PACKAGE_64_DEPENDS_ONLY=1
