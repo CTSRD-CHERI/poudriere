@@ -8125,11 +8125,14 @@ prepare_ports() {
 	local log log_top
 	local n resuming_build
 	local cache_dir sflag delete_pkg_list shash_bucket
+	local arch
 
 	pkgqueue_init
-	if [ "$(injail uname -p)" = "aarch64c" ]; then
+	_jget arch ${JAILNAME} arch
+	case "${arch#*.}" in
+	aarch64*c*)
 		hybridset_init
-	fi
+	esac
 
 	cd "${MASTER_DATADIR}"
 	[ "${SHASH_VAR_PATH}" = "var/cache" ] || \
