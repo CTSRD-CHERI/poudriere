@@ -67,7 +67,7 @@ case "${arch}" in
 aarch64|riscv64)
 	export LD_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib"
 	;;
-aarch64c|riscv64c)
+aarch64*c*|riscv64*c*)
 	export LD_64_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib64"
 	;;
 esac
