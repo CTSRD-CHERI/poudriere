@@ -712,6 +712,9 @@ install_from_ftp() {
 	if [ "${ARCH##*.}" = aarch64c ] || [ "${ARCH##*.}" = "riscv64c" ]; then
 		DISTS="${DISTS} lib64"
 	fi
+	if [ "${ARCH##*.}" = aarch64cb ]; then
+		DISTS="${DISTS} lib64cb"
+	fi
 	DISTS="${DISTS} ${EXTRA_DISTS}"
 
 	case "${V}" in
