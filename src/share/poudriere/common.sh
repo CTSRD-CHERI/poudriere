@@ -3891,8 +3891,11 @@ download_from_repo() {
 
 	pkg_cmd="pkg"
 	case "${arch#*.}" in
-	aarch64*c*|riscv64*c*)
+	aarch64c|riscv64c)
 		pkg_cmd="${pkg_cmd}64c"
+		;;
+	aarch64cb)
+		pkg_cmd="${pkg_cmd}64cb"
 		;;
 	esac
 
