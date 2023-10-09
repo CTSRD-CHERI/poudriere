@@ -17,7 +17,11 @@ LLVM_BIN="${LLVM_PREFIX}/bin"
 LLVM_LIB="${LLVM_PREFIX}/lib"
 
 prog=$(basename "${0}")
-arch=$(uname -p)
+if [ -z "${MACHINE_ARCH}" ]; then
+	arch="$(sysctl -n hw.machine_arch)"
+else
+	arch="${MACHINE_ARCH}"
+fi
 arch_cflags=
 arch_objdump_flags=
 case "${arch}" in
