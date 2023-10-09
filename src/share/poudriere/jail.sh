@@ -717,6 +717,12 @@ install_from_ftp() {
 	fi
 	DISTS="${DISTS} ${EXTRA_DISTS}"
 
+	if [ "${ARCH##*.}" = "aarch64cb" ]; then
+		BASE_ARCH="${ARCH%.*}.aarch64c"
+	else
+		BASE_ARCH="${ARCH}"
+	fi
+
 	case "${V}" in
 	[0-8][^0-9]*) # < 9
 		msg "Fetching sets for ${OS} ${V} ${ARCH}"
@@ -736,20 +742,23 @@ install_from_ftp() {
 			case $(echo "${FREEBSD_HOST}" | \
 			    tr '[:upper:]' '[:lower:]') in
 				*download.freebsd.org)
-					URL="${FREEBSD_HOST}/${type}/${ARCH}/${V}"
+					URL="${FREEBSD_HOST}/${type}/${BASE_ARCH}/${V}"
 					;;
 				*)
-					URL="${FREEBSD_HOST}/pub/FreeBSD/${type}/${ARCH}/${V}"
+					URL="${FREEBSD_HOST}/pub/FreeBSD/${type}/${BASE_ARCH}/${V}"
 					;;
 			esac
 			;;
 		url=*) URL=${METHOD##url=} ;;
-		allbsd) URL="https://pub.allbsd.org/FreeBSD-snapshots/${ARCH%%.*}-${ARCH##*.}/${V}-JPSNAP/ftp" ;;
-		ftp-archive) URL="http://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/${ARCH}/${V}" ;;
-		freebsdci) URL="https://artifact.ci.freebsd.org/snapshot/${V}/latest_tested/${ARCH%%.*}/${ARCH##*.}" ;;
+		allbsd)
+			URL="https://pub.allbsd.org/FreeBSD-snapshots/${BASE_ARCH%%.*}-${BASE_ARCH##*.}/${V}-JPSNAP/ftp" ;;
+		ftp-archive)
+			URL="http://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/${BASE_ARCH}/${V}" ;;
+		freebsdci)
+			URL="https://artifact.ci.freebsd.org/snapshot/${V}/latest_tested/${BASE_ARCH%%.*}/${BASE_ARCH##*.}" ;;
 		esac
 		DISTS="${DISTS} dict"
-		[ "${NO_LIB32:-no}" = "no" -a "${ARCH}" = "amd64" ] &&
+		[ "${NO_LIB32:-no}" = "no" -a "${BASE_ARCH}" = "amd64" ] &&
 			DISTS="${DISTS} lib32"
 		[ -n "${KERNEL}" ] && DISTS="${DISTS} kernels"
 		for dist in ${DISTS}; do
@@ -801,32 +810,32 @@ install_from_ftp() {
 				    tr '[:upper:]' '[:lower:]') in
 					*download.cheribsd.org)
 						if [ "${type}" = "snapshots" ]; then
-							URL="${FREEBSD_HOST}/${type}/${V}/${ARCH%%.*}/${ARCH##*.}/latest/ftp"
+							URL="${FREEBSD_HOST}/${type}/${V}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/latest/ftp"
 						else
-							URL="${FREEBSD_HOST}/${type}/${ARCH%%.*}/${ARCH##*.}/${V}/ftp"
+							URL="${FREEBSD_HOST}/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}/ftp"
 						fi
 						;;
 					*download.freebsd.org)
-						URL="${FREEBSD_HOST}/${type}/${ARCH%%.*}/${ARCH##*.}/${V}"
+						URL="${FREEBSD_HOST}/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}"
 						;;
 					*)
-						URL="${FREEBSD_HOST}/pub/FreeBSD/${type}/${ARCH%%.*}/${ARCH##*.}/${V}"
+						URL="${FREEBSD_HOST}/pub/FreeBSD/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}"
 						;;
 				esac
 				;;
-			allbsd) URL="https://pub.allbsd.org/FreeBSD-snapshots/${ARCH%%.*}-${ARCH##*.}/${V}-JPSNAP/ftp" ;;
-			ftp-archive) URL="http://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/${ARCH%%.*}/${ARCH##*.}/${V}" ;;
-			freebsdci) URL="https://artifact.ci.freebsd.org/snapshot/${V}/latest_tested/${ARCH%%.*}/${ARCH##*.}" ;;
+			allbsd) URL="https://pub.allbsd.org/FreeBSD-snapshots/${BASE_ARCH%%.*}-${BASE_ARCH##*.}/${V}-JPSNAP/ftp" ;;
+			ftp-archive) URL="http://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}" ;;
+			freebsdci) URL="https://artifact.ci.freebsd.org/snapshot/${V}/latest_tested/${BASE_ARCH%%.*}/${BASE_ARCH##*.}" ;;
 			url=*) URL=${METHOD##url=} ;;
 		esac
 
 		# Copy release MANIFEST from the preinstalled set if we have it;
 		# if not, download it.
-		if [ -f ${SCRIPTPREFIX}/MANIFESTS/${ARCH%%.*}-${ARCH##*.}-${V} ]; then
-			msg "Using pre-distributed MANIFEST for ${OS} ${V} ${ARCH}"
-			cp ${SCRIPTPREFIX}/MANIFESTS/${ARCH%%.*}-${ARCH##*.}-${V} ${JAILMNT}/fromftp/MANIFEST
+		if [ -f ${SCRIPTPREFIX}/MANIFESTS/${BASE_ARCH%%.*}-${BASE_ARCH##*.}-${V} ]; then
+			msg "Using pre-distributed MANIFEST for ${OS} ${V} ${BASE_ARCH}"
+			cp ${SCRIPTPREFIX}/MANIFESTS/${BASE_ARCH%%.*}-${BASE_ARCH##*.}-${V} ${JAILMNT}/fromftp/MANIFEST
 		else
-			msg "Fetching MANIFEST for ${OS} ${V} ${ARCH}"
+			msg "Fetching MANIFEST for ${OS} ${V} ${BASE_ARCH}"
 			fetch_file ${JAILMNT}/fromftp/MANIFEST ${URL}/MANIFEST
 		fi
 
@@ -840,7 +849,7 @@ install_from_ftp() {
 			    $1 == dist {ret=0;exit} \
 			    END {exit ret} \
 			    ' "${JAILMNT}/fromftp/MANIFEST" || continue
-			msg "Fetching ${dist} for ${OS} ${V} ${ARCH}"
+			msg "Fetching ${dist} for ${OS} ${V} ${BASE_ARCH}"
 			fetch_file "${JAILMNT}/fromftp/${dist}.txz" "${URL}/${dist}.txz"
 			MHASH="$(awk -vdist="${dist}.txz" '$1 == dist { print $2 }' ${JAILMNT}/fromftp/MANIFEST)"
 			FHASH="$(sha256 -q ${JAILMNT}/fromftp/${dist}.txz)"
