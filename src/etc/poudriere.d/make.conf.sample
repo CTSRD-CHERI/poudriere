@@ -25,3 +25,8 @@ LLVM_AR=	${AR}
 # Use txz instead of tzstd to compress packages.
 # Zstandard is currently broken and we cannot use it for now.
 PKG_COMPRESSION_FORMAT=txz
+
+.ifdef QEMU_EMULATING
+# Skip ports that are known to fail.
+POUDRIERE_SKIP_FAILED=1
+.endif
