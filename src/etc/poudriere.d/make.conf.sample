@@ -18,6 +18,10 @@ XCC=		/toolchain/bin/clang
 XCPP=		/toolchain/bin/clang-cpp
 XCXX=		/toolchain/bin/clang++
 
+# Use llvm-ar from the toolchain.
+LLVM_AR=	${AR}
+.export LLVM_AR
+
 # Use txz instead of tzstd to compress packages.
 # Zstandard is currently broken and we cannot use it for now.
 PKG_COMPRESSION_FORMAT=txz
