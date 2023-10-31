@@ -2906,8 +2906,12 @@ update_version_env() {
 
 	login_env=",UNAME_r=${version% *},UNAME_v=FreeBSD ${version},OSVERSION=${osversion}"
 
-	# Tell pkg(8) to not use /bin/sh for the ELF ABI since it is native.
-	if [ "${QEMU_EMULATING}" -eq 1 ]; then
+	if [ "${arch#*.}" = "aarch64cb" ]; then
+		# In both native and emulated environments, point ABI_FILE at
+		# a file compiled for the benchmark ABI.
+		login_env="${login_env},ABI_FILE=\/usr\/lib64cb\/crt1.o"
+	elif [ "${QEMU_EMULATING}" -eq 1 ]; then
+		# Tell pkg(8) to not use /bin/sh for the ELF ABI since it is native.
 		login_env="${login_env},ABI_FILE=\/usr\/lib\/crt1.o"
 	fi
 
