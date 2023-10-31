@@ -135,6 +135,7 @@ export ADDR2LINE="${LLVM_BIN}/llvm-addr2line"
 export AR="${LLVM_BIN}/llvm-ar"
 export CC="${LLVM_BIN}/clang ${arch_cflags}"
 export CPP="${LLVM_BIN}/clang-cpp ${arch_cflags}"
+export CPPFILT="${LLVM_BIN}/llvm-cxxfilt"
 export CXX="${LLVM_BIN}/clang++ ${arch_cflags}"
 export AS="${CC}"
 export LD="${LLVM_BIN}/ld.lld"
@@ -165,6 +166,9 @@ as)
 	;;
 c++|clang++)
 	${CXX} "${@}"
+	;;
+c++filt)
+	${CPPFILT} "${@}"
 	;;
 cc|clang)
 	${CC} "${@}"
