@@ -2915,6 +2915,13 @@ update_version_env() {
 		login_env="${login_env},ABI_FILE=\/usr\/lib\/crt1.o"
 	fi
 
+	if [ "${QEMU_EMULATING}" -eq 1 ]; then
+		# Define QEMU_EMULATING to allow users manually entering a jail
+		# use logic specific to emulated environments in a toolchain
+		# wrapper and ports.
+		login_env="${login_env},QEMU_EMULATING=1"
+	fi
+
 	# Check TARGET=i386 not TARGET_ARCH due to pc98/i386
 	if need_cross_build "${host_arch}" "${arch}"; then
 		login_env="${login_env},UNAME_m=${arch%.*},UNAME_p=${arch#*.}"
