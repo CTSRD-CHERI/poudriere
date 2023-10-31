@@ -2674,10 +2674,16 @@ check_emulation() {
 		msg "Cross-building ports for ${wanted_arch} on ${real_arch} requires QEMU"
 		[ -x "${BINMISC}" ] || \
 		    err 1 "Cannot find ${BINMISC}. Install ${BINMISC} and restart"
-		EMULATOR=$(${BINMISC} lookup ${wanted_arch#*.} 2>/dev/null | \
+		interpreter="${wanted_arch#*.}"
+		if [ "${interpreter}" = "aarch64cb" ]; then
+			# The user mode for aarch64c handles both aarch64cb and
+			# aarch64c.
+			interpreter="aarch64c"
+		fi
+		EMULATOR=$(${BINMISC} lookup ${interpreter} 2>/dev/null | \
 		    awk '/interpreter:/ {print $2}')
 		[ -x "${EMULATOR}" ] || \
-		    err 1 "You need to install the qemu-user-static package or setup an emulator with binmiscctl(8) for ${wanted_arch#*.}"
+		    err 1 "You need to install the qemu-user-static package or setup an emulator with binmiscctl(8) for ${interpreter}"
 		export QEMU_EMULATING=1
 	fi
 }
