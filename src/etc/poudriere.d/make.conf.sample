@@ -15,6 +15,8 @@ RANLIB=		/toolchain/bin/ranlib
 READELF=	/toolchain/bin/readelf
 SIZE=		/toolchain/bin/size
 STRINGS=	/toolchain/bin/strings
+# STRIP is omitted as it would enable binary stripping rather than define
+# a command that can be used when explicitly needed.
 XCC=		/toolchain/bin/clang
 XCPP=		/toolchain/bin/clang-cpp
 XCXX=		/toolchain/bin/clang++
