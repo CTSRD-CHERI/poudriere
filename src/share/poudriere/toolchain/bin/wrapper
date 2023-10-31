@@ -14,21 +14,31 @@ fi
 
 TOOLCHAIN_ROOT="/toolchain"
 TOOLCHAIN_LOCALBASE="/toolchain/usr/local64"
-TOOLCHAIN_LOCALBIN="${TOOLCHAIN_LOCALBASE}/bin"
-TOOLCHAIN_LOCALLIB="${TOOLCHAIN_LOCALBASE}/lib"
+TOOLCHAIN_LOCALBASE_BIN="${TOOLCHAIN_LOCALBASE}/bin"
+TOOLCHAIN_LOCALBASE_LIB="${TOOLCHAIN_LOCALBASE}/lib"
 
-LLVM_PREFIX="${TOOLCHAIN_LOCALBASE}/llvm-morello"
-LLVM_BIN="${LLVM_PREFIX}/bin"
-LLVM_LIB="${LLVM_PREFIX}/lib"
-
+#
+# Get information on a toolchain program being executed and a target
+# architecture.
+#
+# basename(1) and sysctl(8) must be executed before LD_LIBRARY_PATH is set.
+#
 prog=$(basename "${0}")
 if [ -z "${MACHINE_ARCH}" ]; then
 	arch="$(sysctl -n hw.machine_arch)"
 else
 	arch="${MACHINE_ARCH}"
 fi
-arch_cflags=
-arch_objdump_flags=
+
+#
+# Compute toolchain flags.
+#
+if [ -n "${QEMU_EMULATING}" ]; then
+	arch_cflags="-target aarch64-unknown-freebsd14.0"
+else
+	arch_cflags=""
+fi
+arch_objdump_flags=""
 case "${arch}" in
 aarch64)
 	if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
@@ -36,7 +46,12 @@ aarch64)
 	else
 		vararg_flags="-Xclang -morello-vararg=new"
 	fi
-	arch_cflags="-march=morello ${vararg_flags}"
+	if [ -n "${MACHINE_ARCH_HYBRID}" ]; then
+		arch_cflags="${arch_cflags} -march=morello+a64c"
+	else
+		arch_cflags="${arch_cflags} -march=morello"
+	fi
+	arch_cflags="${arch_cflags} ${vararg_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
 aarch64c)
@@ -50,38 +65,69 @@ aarch64c)
 		tls_flags=""
 		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
 	fi
-	arch_cflags="-march=morello -mabi=purecap ${tls_flags} ${vararg_flags}"
+	arch_cflags="${arch_cflags} -march=morello -mabi=purecap ${tls_flags} ${vararg_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
 aarch64cb)
 	if [ "${CHERIBSD_VERSION}" -lt 20230804 ]; then
 		die "Unexpected CheriBSD version for the benchmark ABI: ${CHERIBSD_VERSION}."
 	fi
-	arch_cflags="-march=morello -mabi=purecap-benchmark -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
+	arch_cflags="${arch_cflags} -march=morello -mabi=purecap-benchmark -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
 	arch_objdump_flags="--mattr=+morello"
 	;;
 riscv64)
-	arch_cflags="-march=rv64gcxcheri -mabi=lp64d -mno-relax"
+	arch_cflags="${arch_cflags} -march=rv64gcxcheri -mabi=lp64d -mno-relax"
 	;;
 riscv64c)
-	arch_cflags="-march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
+	arch_cflags="${arch_cflags} -march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
 	;;
-*)
-	die "Unexpected arch: ${arch}."
 esac
 
 #
-# Use toolchain binaries and libraries.
+# Use a toolchain from LLVM fore Morello for AArch64-based architectures.
+# Otherwise, use CHERI LLVM.
 #
-export PATH="${TOOLCHAIN_LOCALBIN}:${PATH}"
 case "${arch}" in
-aarch64|riscv64)
-	export LD_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib"
+aarch64*)
+	LLVM_PREFIX="${TOOLCHAIN_LOCALBASE}/llvm-morello"
 	;;
-aarch64*c*|riscv64*c*)
-	export LD_64_LIBRARY_PATH="${TOOLCHAIN_LOCALLIB}:${LLVM_LIB}:/usr/lib64"
+*)
+	LLVM_PREFIX="${TOOLCHAIN_LOCALBASE}/llvm-cheri"
 	;;
 esac
+LLVM_BIN="${LLVM_PREFIX}/bin"
+LLVM_LIB="${LLVM_PREFIX}/lib"
+
+#
+# Use toolchain libraries and base system libraries from a jail or a host,
+# if the jail is emulated.
+#
+if [ -n "${QEMU_EMULATING}" ]; then
+	TOOLCHAIN_BASE_LIB="/host/usr/local/lib:/host/usr/lib:/host/lib"
+else
+	case "${arch}" in
+	aarch64|riscv64)
+		TOOLCHAIN_BASE_LIB="/usr/lib"
+		;;
+	aarch64*c*|riscv64*c*)
+		TOOLCHAIN_BASE_LIB="/usr/lib64"
+		;;
+	esac
+fi
+_LD_LIBRARY_PATH="${TOOLCHAIN_LOCALBASE_LIB}:${LLVM_LIB}:${TOOLCHAIN_BASE_LIB}"
+if [ -n "${QEMU_EMULATING}" ]; then
+	export LD_LIBRARY_PATH="${_LD_LIBRARY_PATH}"
+else
+	case "${arch}" in
+	aarch64|riscv64)
+		export LD_LIBRARY_PATH="${_LD_LIBRARY_PATH}"
+		;;
+	aarch64*c*|riscv64*c*)
+		export LD_64_LIBRARY_PATH="${_LD_LIBRARY_PATH}"
+		;;
+	esac
+fi
+
 #
 # Overwrite variables from make.conf so that subprocesses directly utilities.
 #
@@ -104,6 +150,9 @@ export XCC="${CC}"
 export XCPP="${CPP}"
 export XCXX="${CXX}"
 
+#
+# Finally, execute the program.
+#
 case "${prog}" in
 addr2line)
 	${ADDR2LINE} "${@}"
@@ -151,6 +200,6 @@ strip)
 	${STRIP} "${@}"
 	;;
 *)
-	"${TOOLCHAIN_LOCALBIN}/${prog}" "${@}"
+	die "Unexpected program: ${prog}."
 	;;
 esac
