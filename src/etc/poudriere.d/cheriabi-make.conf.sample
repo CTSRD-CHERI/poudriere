@@ -3,10 +3,11 @@ PATH=/toolchain/bin:/sbin:/bin:/usr/sbin:/usr/bin:${LOCALBASE}/sbin:${LOCALBASE}
 .export PATH
 
 # Forcefully disable unsupported port options:
-# * DOCS - CheriBSD doesn't install man pages;
+# * DOCS - textproc/py-docutils requires missing CheriABI Python;
+# * MANPAGES - textproc/py-docutils requires missing CheriABI Python;
 # * INFO - print/texlive is broken;
 # * NLS - devel/gettext-tools is broken.
-OPTIONS_UNSET_FORCE+=	DOCS INFO NLS
+OPTIONS_UNSET_FORCE+=	DOCS MANPAGES INFO NLS
 
 # Install hybrid ABI replacement packages for ports that aren't adapted for
 # CheriABI yet but are required to build significant packages.
