@@ -709,12 +709,15 @@ install_from_ftp() {
 
 	DISTS="${DISTS} base games"
 	[ -z "${SRCPATH}" -a "${NO_SRC:-no}" = "no" ] && DISTS="${DISTS} src"
-	if [ "${ARCH##*.}" = aarch64c ] || [ "${ARCH##*.}" = "riscv64c" ]; then
-		DISTS="${DISTS} lib64"
-	fi
-	if [ "${ARCH##*.}" = aarch64cb ]; then
+	case "${ARCH##*.}" in
+	aarch64cb)
 		DISTS="${DISTS} lib64cb"
-	fi
+		;&
+		# FALLTHROUGH
+	aarch64*c*|riscv64*c*)
+		DISTS="${DISTS} lib64"
+		;;
+	esac
 	DISTS="${DISTS} ${EXTRA_DISTS}"
 
 	if [ "${ARCH##*.}" = "aarch64cb" ]; then
