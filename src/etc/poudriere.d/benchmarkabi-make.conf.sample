@@ -13,8 +13,8 @@ MACHINE_ARCH=	${ARCH}
 # Install aarch64 packages in a separate LOCALBASE.
 LOCALBASE=/usr/local64cb
 
-# Use programs from bin and sbin in LOCALBASE.
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:${LOCALBASE}/sbin:${LOCALBASE}/bin
+# Add toolchain and local base utilities to PATH.
+PATH=/toolchain/bin:/sbin:/bin:/usr/sbin:/usr/bin:${LOCALBASE}/sbin:${LOCALBASE}/bin
 .export PATH
 
 # Forcefully disable unsupported port options:

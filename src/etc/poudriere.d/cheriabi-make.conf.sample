@@ -1,3 +1,7 @@
+# Add toolchain and local base utilities to PATH.
+PATH=/toolchain/bin:/sbin:/bin:/usr/sbin:/usr/bin:${LOCALBASE}/sbin:${LOCALBASE}/bin
+.export PATH
+
 # Forcefully disable unsupported port options:
 # * DOCS - CheriBSD doesn't install man pages;
 # * INFO - print/texlive is broken;
