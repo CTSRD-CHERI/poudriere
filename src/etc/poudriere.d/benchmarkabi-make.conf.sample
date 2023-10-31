@@ -8,8 +8,7 @@
 # part of configure and build stages.
 ARCH=		aarch64cb
 MACHINE_ARCH=	${ARCH}
-CONFIGURE_ENV+=	MACHINE_ARCH="${MACHINE_ARCH}"
-MAKE_ENV+=	MACHINE_ARCH="${MACHINE_ARCH}"
+.export MACHINE_ARCH
 
 # Install aarch64 packages in a separate LOCALBASE.
 LOCALBASE=/usr/local64cb
