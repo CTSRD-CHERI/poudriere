@@ -3764,7 +3764,7 @@ download_toolchain_from_repo() {
 
 	msg "Installing toolchain for ${os} ${version} ${arch}"
 
-	cp -a "${SCRIPTPREFIX}/toolchain" "${MASTERMNT}/toolchain"
+	cp -a "${SCRIPTPREFIX}/toolchain" "${MASTERMNT}/"
 	mkdir -p "${MASTERMNT}/toolchain/usr/share/keys/pkg"
 	cp -a "${MASTERMNT}/usr/share/keys/pkg/trusted" \
 	    "${MASTERMNT}/toolchain/usr/share/keys/pkg/trusted"
