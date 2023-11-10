@@ -3780,11 +3780,12 @@ download_toolchain_from_repo() {
 		err 1 "Unexpected architecture: ${arch}"
 		;;
 	esac
-	hybridset_pkgcmd "${MASTERMNT}" "/toolchain" install -q "${toolchain}"
+	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" \
+	    install -q "${toolchain}"
 	if [ $? -ne 0 ]; then
 		err 1 "Failed to install llvm-morello"
 	fi
-	hybridset_pkgcmd "${MASTERMNT}" "/toolchain" clean -aq
+	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" clean -aq
 }
 
 download_hybridset_pkg_from_repo() {
@@ -3802,8 +3803,8 @@ download_hybridset_pkg_from_repo() {
 
 	msg "Bootstrapping hybrid ABI pkg."
 
-	hybridset_pkgcmd "${MASTERMNT}" "/" install -q pkg
-	hybridset_pkgcmd "${MASTERMNT}" "/" update -q
+	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" install -q pkg
+	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" update -q
 
 	get_host_abi host_abi
 	if [ "${host_abi}" = "purecap" ]; then
@@ -3823,12 +3824,15 @@ download_hybridset_pkg_from_repo() {
 }
 
 download_hybridset_from_repo() {
-	local oldpkgname pkgname
+	local arch oldpkgname pkgname
+
+	_jget arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
 
 	hybridset_list | while mapfile_read_loop_redir pkgname; do
 		msg "Hybrid ABI package fetch: installing ${pkgname}."
 
-		hybridset_pkgcmd "${MASTERMNT}" "/" install -q "${pkgname}"
+		hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" \
+		    install -q "${pkgname}"
 	done
 
 	# Regenerate hints files for installed packages.
