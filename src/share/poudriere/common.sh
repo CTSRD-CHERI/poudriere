@@ -3790,6 +3790,16 @@ download_toolchain_from_repo() {
 download_hybridset_pkg_from_repo() {
 	local arch host_abi pkgabi pkgcmd
 
+	_jget arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
+
+	case "${arch#*.}" in
+	aarch64*c*|riscv64*c*)
+		;;
+	*)
+		# Hybrid ABI packages aren't needed for non-CheriABI targets.
+		return
+	esac
+
 	msg "Bootstrapping hybrid ABI pkg."
 
 	hybridset_pkgcmd "${MASTERMNT}" "/" install -q pkg
