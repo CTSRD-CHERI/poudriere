@@ -41,17 +41,17 @@ fi
 arch_objdump_flags=""
 case "${arch}" in
 aarch64)
-	if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
-		vararg_flags=""
+	if [ -z "${MACHINE_ARCH_HYBRID}" ]; then
+		# Build for vanilla aarch64 which can be used on
+		# CheriBSD/Morello and FreeBSD/arm64.
 	else
-		vararg_flags="-Xclang -morello-vararg=new"
+		if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
+			vararg_flags=""
+		else
+			vararg_flags="-Xclang -morello-vararg=new"
+		fi
+		arch_cflags="${arch_cflags} -march=morello+a64c -mabi=aapcs ${vararg_flags}"
 	fi
-	if [ -n "${MACHINE_ARCH_HYBRID}" ]; then
-		arch_cflags="${arch_cflags} -march=morello+a64c"
-	else
-		arch_cflags="${arch_cflags} -march=morello"
-	fi
-	arch_cflags="${arch_cflags} ${vararg_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
 aarch64c)
@@ -80,6 +80,9 @@ riscv64)
 	;;
 riscv64c)
 	arch_cflags="${arch_cflags} -march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
+	;;
+*)
+	die "Unexpected architecture: ${arch}"
 	;;
 esac
 
