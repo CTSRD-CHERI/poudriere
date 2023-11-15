@@ -3783,7 +3783,7 @@ download_toolchain_from_repo() {
 	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" \
 	    install -q "${toolchain}"
 	if [ $? -ne 0 ]; then
-		err 1 "Failed to install llvm-morello"
+		err 1 "Failed to install ${toolchain}"
 	fi
 	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" clean -aq
 }
