@@ -55,6 +55,7 @@ dist_examples_DATA=	\
 
 dist_poudriered_DATA=		\
 		src/etc/poudriere.d/make.conf.sample \
+		src/etc/poudriere.d/benchmarkabi-make.conf.sample \
 		src/etc/poudriere.d/cheriabi-make.conf.sample \
 		src/etc/poudriere.d/hybridabi-make.conf.sample
 
