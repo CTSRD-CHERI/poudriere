@@ -736,6 +736,7 @@ dist_poudriered_DATA = \
 		src/etc/poudriere.d/make.conf.sample \
 		src/etc/poudriere.d/benchmarkabi-make.conf.sample \
 		src/etc/poudriere.d/cheriabi-make.conf.sample \
+		src/etc/poudriere.d/cheriabi_debug-make.conf.sample \
 		src/etc/poudriere.d/hybridabi-make.conf.sample
 
 dist_hook_DATA = src/etc/poudriere.d/hooks/bulk.sh.sample \
