@@ -573,7 +573,6 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
@@ -676,6 +675,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -734,6 +734,7 @@ dist_examples_DATA = \
 
 dist_poudriered_DATA = \
 		src/etc/poudriere.d/make.conf.sample \
+		src/etc/poudriere.d/benchmarkabi-make.conf.sample \
 		src/etc/poudriere.d/cheriabi-make.conf.sample \
 		src/etc/poudriere.d/hybridabi-make.conf.sample
 
