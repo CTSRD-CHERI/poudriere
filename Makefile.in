@@ -733,7 +733,7 @@ dist_examples_DATA = \
 		src/share/examples/poudriere/httpd.conf.sample
 
 dist_poudriered_DATA = \
-		src/etc/poudriere.d/make.conf.sample \
+		src/etc/poudriere.d/CheriBSD-make.conf.sample \
 		src/etc/poudriere.d/benchmarkabi-make.conf.sample \
 		src/etc/poudriere.d/cheriabi-make.conf.sample \
 		src/etc/poudriere.d/cheriabi_debug-make.conf.sample \
