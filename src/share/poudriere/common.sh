@@ -3367,12 +3367,16 @@ setup_makeconf() {
 	local setname=$4
 	local makeconf opt plugin_dir
 	local arch host_arch
+	local osname
+
+	osname=""
 
 	get_host_arch host_arch
 	# The jail may be empty for poudriere-options.
 	if [ -n "${name}" ]; then
 		_jget arch "${name}" arch || \
 		    err 1 "Missing arch metadata for jail"
+		_jget osname ${name} os || err 1 "Missing os metadata for jail"
 	elif [ -n "${ARCH}" ]; then
 		arch="${ARCH}"
 	fi
@@ -3387,7 +3391,7 @@ setup_makeconf() {
 		fi
 	fi
 
-	makeconf="- ${setname} ${ptname} ${name}"
+	makeconf="- ${osname} ${setname} ${ptname} ${name}"
 	if [ -n "${setname}" ]; then
 		makeconf="${makeconf} ${ptname}-${setname}"
 	fi
