@@ -34,7 +34,7 @@ fi
 # Compute toolchain flags.
 #
 if [ -n "${QEMU_EMULATING}" ]; then
-	arch_cflags="-target aarch64-unknown-freebsd14.0"
+	arch_cflags="-target aarch64-unknown-freebsd15.0"
 else
 	arch_cflags=""
 fi
