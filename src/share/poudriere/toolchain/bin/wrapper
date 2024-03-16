@@ -54,25 +54,26 @@ aarch64)
 	fi
 	arch_objdump_flags="--mattr=+morello"
 	;;
-aarch64c)
+aarch64*c*)
+	if [ "${arch}" = "aarch64cb" ]; then
+		mabi="purecap-benchmark"
+	else
+		mabi="purecap"
+	fi
 	if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
 		tls_flags="-femulated-tls"
 		vararg_flags=""
 	elif [ "${CHERIBSD_VERSION}" -le 20220828 ]; then
 		tls_flags=""
 		vararg_flags="-Xclang -morello-vararg=new"
-	else
+	elif [ "${CHERIBSD_VERSION}" -le 20230804 ]; then
 		tls_flags=""
 		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
+	else
+		tls_flags=""
+		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs"
 	fi
-	arch_cflags="${arch_cflags} -march=morello -mabi=purecap ${tls_flags} ${vararg_flags}"
-	arch_objdump_flags="--mattr=+morello"
-	;;
-aarch64cb)
-	if [ "${CHERIBSD_VERSION}" -lt 20230804 ]; then
-		die "Unexpected CheriBSD version for the benchmark ABI: ${CHERIBSD_VERSION}."
-	fi
-	arch_cflags="${arch_cflags} -march=morello -mabi=purecap-benchmark -Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
+	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi} ${tls_flags} ${vararg_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
 riscv64)
