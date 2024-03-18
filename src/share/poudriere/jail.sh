@@ -698,7 +698,7 @@ install_from_vcs() {
 
 install_from_ftp() {
 	mkdir ${JAILMNT}/fromftp
-	local URL V
+	local DOWNLOAD_HOST DOWNLOAD_HOST_DEFAULT DOWNLOAD_HOST_VAR URL V
 
 	V=${ALLBSDVER:-${VERSION}}
 	case $V in
@@ -726,6 +726,23 @@ install_from_ftp() {
 		BASE_ARCH="${ARCH}"
 	fi
 
+	if [ "${OS}" = "CheriBSD" ]; then
+		DOWNLOAD_HOST_DEFAULT="${CHERIBSD_HOST_DEFAULT}"
+		DOWNLOAD_HOST="${CHERIBSD_HOST}"
+		DOWNLOAD_HOST_VAR="CHERIBSD_HOST"
+	else
+		DOWNLOAD_HOST_DEFAULT="${FREEBSD_HOST_DEFAULT}"
+		DOWNLOAD_HOST="${FREEBSD_HOST}"
+		DOWNLOAD_HOST_VAR="FREEBSD_HOST"
+	fi
+
+	# Check that the defaults have been changed
+	echo ${DOWNLOAD_HOST} | egrep -E "(_PROTO_|_CHANGE_THIS_)" > /dev/null
+	if [ $? -eq 0 ]; then
+		msg "${DOWNLOAD_HOST_VAR} from config invalid; defaulting to ${DOWNLOAD_HOST_DEFAULT}"
+		DOWNLOAD_HOST="${DOWNLOAD_HOST_DEFAULT}"
+	fi
+
 	case "${V}" in
 	[0-8][^0-9]*) # < 9
 		msg "Fetching sets for ${OS} ${V} ${ARCH}"
@@ -736,19 +753,13 @@ install_from_ftp() {
 				*) type=releases ;;
 			esac
 
-			# Check that the defaults have been changed
-			echo ${FREEBSD_HOST} | egrep -E "(_PROTO_|_CHANGE_THIS_)" > /dev/null
-			if [ $? -eq 0 ]; then
-				msg "FREEBSD_HOST from config invalid; defaulting to ${DOWNLOAD_HOST}"
-				FREEBSD_HOST="${DOWNLOAD_HOST}"
-			fi
-			case $(echo "${FREEBSD_HOST}" | \
+			case $(echo "${DOWNLOAD_HOST}" | \
 			    tr '[:upper:]' '[:lower:]') in
 				*download.freebsd.org)
-					URL="${FREEBSD_HOST}/${type}/${BASE_ARCH}/${V}"
+					URL="${DOWNLOAD_HOST}/${type}/${BASE_ARCH}/${V}"
 					;;
 				*)
-					URL="${FREEBSD_HOST}/pub/FreeBSD/${type}/${BASE_ARCH}/${V}"
+					URL="${DOWNLOAD_HOST}/pub/FreeBSD/${type}/${BASE_ARCH}/${V}"
 					;;
 			esac
 			;;
@@ -802,27 +813,20 @@ install_from_ftp() {
 					*) type=releases ;;
 				esac
 
-				# Check that the defaults have been changed
-				echo ${FREEBSD_HOST} | egrep -E "(_PROTO_|_CHANGE_THIS_)" > /dev/null
-				if [ $? -eq 0 ]; then
-					msg "FREEBSD_HOST from config invalid; defaulting to ${DOWNLOAD_HOST}"
-					FREEBSD_HOST="${DOWNLOAD_HOST}"
-				fi
-
-				case $(echo "${FREEBSD_HOST}" | \
+				case $(echo "${DOWNLOAD_HOST}" | \
 				    tr '[:upper:]' '[:lower:]') in
 					*download.cheribsd.org)
 						if [ "${type}" = "snapshots" ]; then
-							URL="${FREEBSD_HOST}/${type}/${V}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/latest/ftp"
+							URL="${DOWNLOAD_HOST}/${type}/${V}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/latest/ftp"
 						else
-							URL="${FREEBSD_HOST}/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}/ftp"
+							URL="${DOWNLOAD_HOST}/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}/ftp"
 						fi
 						;;
 					*download.freebsd.org)
-						URL="${FREEBSD_HOST}/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}"
+						URL="${DOWNLOAD_HOST}/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}"
 						;;
 					*)
-						URL="${FREEBSD_HOST}/pub/FreeBSD/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}"
+						URL="${DOWNLOAD_HOST}/pub/FreeBSD/${type}/${BASE_ARCH%%.*}/${BASE_ARCH##*.}/${V}"
 						;;
 				esac
 				;;

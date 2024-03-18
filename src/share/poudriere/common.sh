@@ -8944,19 +8944,20 @@ get_host_os HOST_OS
 : ${FREEBSD_GIT_HOST:="git.FreeBSD.org"}
 : ${FREEBSD_GIT_BASEURL:="${FREEBSD_GIT_HOST}/src.git"}
 : ${FREEBSD_GIT_PORTSURL:="${FREEBSD_GIT_HOST}/ports.git"}
-: ${FREEBSD_HOST:="https://download.FreeBSD.org"}
+: ${FREEBSD_HOST_DEFAULT:="https://download.FreeBSD.org"}
+: ${FREEBSD_HOST:="${FREEBSD_HOST_DEFAULT}"}
 : ${FREEBSD_GIT_SSH_USER="anongit"}
 
 : ${CHERIBSD_GIT_HOST:="github.com"}
 : ${CHERIBSD_GIT_BASEURL:="${CHERIBSD_GIT_HOST}/CTSRD-CHERI/cheribsd.git"}
 : ${CHERIBSD_GIT_PORTSURL:="${CHERIBSD_GIT_HOST}/CTSRD-CHERI/cheribsd-ports.git"}
-: ${CHERIBSD_HOST:="https://download.CheriBSD.org"}
+: ${CHERIBSD_HOST_DEFAULT:="https://download.CheriBSD.org"}
+: ${CHERIBSD_HOST:="${CHERIBSD_HOST_DEFAULT}"}
 
 if [ "${HOST_OS}" = "CheriBSD" ]; then
 	: ${GIT_HOST:="${CHERIBSD_GIT_HOST}"}
 	: ${GIT_BASEURL:=${CHERIBSD_GIT_BASEURL}}
 	: ${GIT_PORTSURL:=${CHERIBSD_GIT_PORTSURL}}
-	: ${DOWNLOAD_HOST:=${CHERIBSD_HOST}}
 else
 	: ${SVN_HOST:="${FREEBSD_SVN_HOST}"}
 	: ${GIT_HOST:="${FREEBSD_GIT_HOST}"}
@@ -8964,7 +8965,6 @@ else
 	# GIT_URL is old compat
 	: ${GIT_PORTSURL:=${GIT_URL:-${FREEBSD_GIT_PORTSURL}}}
 	: ${GIT_SSH_USER:=${FREEBSD_GIT_SSH_USER}}
-	: ${DOWNLOAD_HOST:=${FREEBSD_HOST}}
 fi
 
 if [ -z "${NO_ZFS}" ]; then
