@@ -69,42 +69,41 @@ hybridset_list() {
 	(cd "${MASTER_DATADIR_ABS}" && find "hybridset" -type d -depth 2 | cut -d / -f 3 | sort -u)
 }
 
+hybridset_is_really_host() {
+	# XXX: Host ABI used as a proxy for whether we're building natively or
+	# with qemu-user (where hybrid packages are really host packages).
+	get_host_abi host_abi
+	[ "${host_abi}" != "purecap" ]
+}
+
 hybridset_pkgcmd() {
-	[ $# -ge 3 ] || eargs hybridset_pkgcmd rootdir pkgrootdir
-	local arch="${1}"
-	local rootdir="$2"
-	local pkgrootdir="$3"
-	shift 3
-	local etcdir host_abi pkgcmd
+	local arch pkgcmd
+
+	_jget arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
 
 	case "${arch#*.}" in
 	aarch64|riscv64)
-		etcdir="pkg"
+		pkgcmd="pkg"
 		;;
 	aarch64*c*|riscv64*c*)
-		etcdir="pkg64"
+		pkgcmd="pkg64"
 		;;
 	*)
 		err 1 "Unexpected architecture: ${arch}"
 		;;
 	esac
 
-	get_host_abi host_abi
-	if [ "${host_abi}" = "purecap" ]; then
-		pkgcmd="pkg64"
-		abifile="/usr/sbin/pkg64"
+	if ! hybridset_is_really_host; then
+		JNETNAME="n" injail env ASSUME_ALWAYS_YES=yes ${pkgcmd} "${@}"
 	else
-		pkgcmd="pkg"
-		abifile="/usr/bin/uname"
+		env ABI_FILE=/usr/bin/uname \
+		    IGNORE_OSVERSION=yes \
+		    PKG_DBDIR="${MASTERMNT}/var/db/pkg64" \
+		    PKG_CACHEDIR="${MASTERMNT}/var/cache/pkg64" \
+		    ASSUME_ALWAYS_YES=yes \
+		    pkg \
+		    -R "${MASTERMNT}/etc/pkg64" \
+		    -r "${MASTERMNT}" \
+		    "${@}"
 	fi
-
-	env ABI_FILE="${abifile}" \
-	    IGNORE_OSVERSION=yes \
-	    PKG_DBDIR="${rootdir}${pkgrootdir}/var/db/pkg64" \
-	    PKG_CACHEDIR="${rootdir}${pkgrootdir}/var/cache/pkg64" \
-	    ASSUME_ALWAYS_YES=yes \
-	    ${pkgcmd} \
-	    -R "${rootdir}/etc/${etcdir}" \
-	    -r "${rootdir}${pkgrootdir}" \
-	    "${@}"
 }

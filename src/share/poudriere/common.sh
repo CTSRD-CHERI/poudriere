@@ -3222,17 +3222,17 @@ jail_start() {
 		cp -v "${RESOLV_CONF}" "${tomnt}/etc/"
 	fi
 
-	if [ "${os}" = "CheriBSD" ]; then
-		download_toolchain_from_repo
-		download_hybridset_pkg_from_repo
-	fi
-
 	msg "Starting jail ${MASTERNAME}"
 	jstart
 	# Safe to release the lock now as jail_runs() will block further bulks.
 	slock_release "jail_start_${MASTERNAME}"
 	injail id >/dev/null 2>&1 || \
 	    err $? "Unable to execute id(1) in jail. Emulation or ABI wrong."
+
+	if [ "${os}" = "CheriBSD" ]; then
+		download_toolchain_from_repo
+		download_hybridset_pkg_from_repo
+	fi
 
 	portbuild_gid=$(injail pw groupshow "${PORTBUILD_GROUP}" 2>/dev/null | cut -d : -f3 || :)
 	if [ -z "${portbuild_gid}" ]; then
@@ -3784,12 +3784,11 @@ download_toolchain_from_repo() {
 		err 1 "Unexpected architecture: ${arch}"
 		;;
 	esac
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" \
-	    install -q "${toolchain}"
+	hybridset_pkgcmd install -q "${toolchain}"
 	if [ $? -ne 0 ]; then
 		err 1 "Failed to install ${toolchain}"
 	fi
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" clean -aq
+	hybridset_pkgcmd clean -aq
 }
 
 download_hybridset_pkg_from_repo() {
@@ -3807,17 +3806,20 @@ download_hybridset_pkg_from_repo() {
 
 	msg "Bootstrapping hybrid ABI pkg."
 
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" install -q pkg
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" update -q
-
-	get_host_abi host_abi
-	if [ "${host_abi}" = "purecap" ]; then
-		pkgcmd="pkg64"
-	else
-		pkgcmd="pkg"
+	hybridset_pkgcmd install -q pkg
+	if [ $? -ne 0 ]; then
+		err 1 "Failed to install hybrid ABI pkg"
+	fi
+	hybridset_pkgcmd update -q
+	if [ $? -ne 0 ]; then
+		err 1 "Failed to update hybrid ABI repository"
 	fi
 
-	pkgabi=$(${pkgcmd} config ABI)
+	if ! hybridset_is_really_host; then
+		return
+	fi
+
+	pkgabi=$(hybridset_pkgcmd config ABI)
 	if [ -z "${pkgabi}" ]; then
 		err 1 "Failure looking up host pkg ABI"
 	fi
@@ -3835,8 +3837,7 @@ download_hybridset_from_repo() {
 	hybridset_list | while mapfile_read_loop_redir pkgname; do
 		msg "Hybrid ABI package fetch: installing ${pkgname}."
 
-		hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" \
-		    install -q "${pkgname}"
+		hybridset_pkgcmd install -q "${pkgname}"
 	done
 
 	# Regenerate hints files for installed packages.
