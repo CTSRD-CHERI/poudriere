@@ -50,7 +50,7 @@ aarch64)
 		else
 			vararg_flags="-Xclang -morello-vararg=new"
 		fi
-		arch_cflags="${arch_cflags} -march=morello+a64c -mabi=aapcs ${vararg_flags}"
+		arch_cflags="${arch_cflags} -march=morello -mabi=aapcs ${vararg_flags}"
 	fi
 	arch_objdump_flags="--mattr=+morello"
 	;;
