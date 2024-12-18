@@ -38,6 +38,7 @@ if [ -n "${QEMU_EMULATING}" ]; then
 else
 	arch_cflags=""
 fi
+arch_ldflags=""
 arch_objdump_flags=""
 case "${arch}" in
 aarch64)
@@ -60,20 +61,23 @@ aarch64*c*)
 	else
 		mabi="purecap"
 	fi
+	c18n_flags=""
+	tls_flags=""
+	vararg_flags=""
 	if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
 		tls_flags="-femulated-tls"
-		vararg_flags=""
 	elif [ "${CHERIBSD_VERSION}" -le 20220828 ]; then
-		tls_flags=""
 		vararg_flags="-Xclang -morello-vararg=new"
 	elif [ "${CHERIBSD_VERSION}" -le 20230804 ]; then
-		tls_flags=""
 		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
+	elif [ "${CHERIBSD_VERSION}" -eq 20241216 ]; then
+		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs"
+		c18n_flags="-cheri-codeptr-relocs"
+		arch_ldflags="${c18n_flags}"
 	else
-		tls_flags=""
 		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs"
 	fi
-	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi} ${tls_flags} ${vararg_flags}"
+	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi} ${tls_flags} ${vararg_flags} ${c18n_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
 riscv64)
@@ -142,7 +146,7 @@ export CPP="${LLVM_BIN}/clang-cpp ${arch_cflags}"
 export CPPFILT="${LLVM_BIN}/llvm-cxxfilt"
 export CXX="${LLVM_BIN}/clang++ ${arch_cflags}"
 export AS="${CC}"
-export LD="${LLVM_BIN}/ld.lld"
+export LD="${LLVM_BIN}/ld.lld ${arch_ldflags}"
 export NM="${LLVM_BIN}/llvm-nm"
 export OBJCOPY="${LLVM_BIN}/llvm-objcopy"
 export OBJDUMP="${LLVM_BIN}/llvm-objdump ${arch_objdump_flags}"
