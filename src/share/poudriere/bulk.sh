@@ -55,6 +55,7 @@ Options:
                    number of jobs in parallel while preparing the build.
                    (Defaults to the number of CPUs for n and 1.25 times n for p)
     -j name     -- Run only on the given jail
+    -H repo     -- Specify what repository for host packages to use
     -k          -- When doing testing with -t, don't consider failures as
                    fatal; don't skip dependent ports on findings.
     -N          -- Do not build package repository when build completed
@@ -87,6 +88,7 @@ bulk_cleanup() {
 PTNAME="default"
 SKIP_RECURSIVE_REBUILD=0
 SETNAME=""
+HYBRIDSET_REPO=""
 CLEAN=0
 CLEAN_LISTED=0
 DRY_RUN=0
@@ -98,7 +100,7 @@ COMMIT=1
 
 [ $# -eq 0 ] && usage
 
-while getopts "ab:B:CcFf:iIj:J:knNO:p:RrSTtvwz:" FLAG; do
+while getopts "ab:B:CcFf:H:iIj:J:knNO:p:RrSTtvwz:" FLAG; do
 	case "${FLAG}" in
 		a)
 			ALL=1
@@ -125,6 +127,10 @@ while getopts "ab:B:CcFf:iIj:J:knNO:p:RrSTtvwz:" FLAG; do
 			[ "${OPTARG#/}" = "${OPTARG}" ] && \
 			    OPTARG="${SAVED_PWD}/${OPTARG}"
 			LISTPKGS="${LISTPKGS:+${LISTPKGS} }${OPTARG}"
+			;;
+		H)
+			[ -n "${OPTARG}" ] || err 1 "Empty repository name"
+			HYBRIDSET_REPO="${OPTARG}"
 			;;
 		I)
 			INTERACTIVE_MODE=2

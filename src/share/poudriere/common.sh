@@ -3762,7 +3762,7 @@ download_from_repo_check_pkg() {
 }
 
 download_toolchain_from_repo() {
-	local arch os version
+	local arch etcdir os version
 
 	_jget os ${JAILNAME} os || err 1 "Missing os metadata for jail"
 	[ "${os}" = "CheriBSD" ] || err 1 "Unexpected OS: ${os}"
@@ -3776,6 +3776,32 @@ download_toolchain_from_repo() {
 	cp -a "${MASTERMNT}/usr/share/keys/pkg/trusted" \
 	    "${MASTERMNT}/toolchain/usr/share/keys/pkg/trusted"
 
+	mkdir -p "${MASTERMNT}/toolchain/usr/local/etc/pkg/repos"
+	if [ -n "${HYBRIDSET_REPO}" ]; then
+		cat << EOF >"${MASTERMNT}/toolchain/usr/local/etc/pkg/repos/local.conf"
+hybridset: {
+  url: "file://${POUDRIERE_DATA}/packages/${HYBRIDSET_REPO}/.latest/",
+  mirror_type: "none",
+  signature_type: "none",
+  enabled: yes
+}
+EOF
+	else
+		case "${arch#*.}" in
+		aarch64|riscv64)
+			etcdir="pkg"
+			;;
+		aarch64*c*|riscv64*c*)
+			etcdir="pkg64"
+			;;
+		*)
+			err 1 "Unexpected architecture: ${arch}"
+			;;
+		esac
+		cp -a "${MASTERMNT}/etc/${etcdir}"/* \
+		    "${MASTERMNT}/toolchain/usr/local/etc/pkg/repos/"
+	fi
+
 	case "${arch#*.}" in
 	aarch64*)
 		toolchain="llvm-morello"
@@ -3787,12 +3813,11 @@ download_toolchain_from_repo() {
 		err 1 "Unexpected architecture: ${arch}"
 		;;
 	esac
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" \
-	    install -q "${toolchain}"
+	hybridset_pkgcmd "${MASTERMNT}" "/toolchain" install -q "${toolchain}"
 	if [ $? -ne 0 ]; then
 		err 1 "Failed to install ${toolchain}"
 	fi
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" clean -aq
+	hybridset_pkgcmd "${MASTERMNT}" "/toolchain" clean -aq
 }
 
 download_hybridset_pkg_from_repo() {
@@ -3810,8 +3835,8 @@ download_hybridset_pkg_from_repo() {
 
 	msg "Bootstrapping hybrid ABI pkg."
 
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" install -q pkg
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" update -q
+	hybridset_pkgcmd "${MASTERMNT}" "/" install -q pkg
+	hybridset_pkgcmd "${MASTERMNT}" "/" update -q
 
 	get_host_abi host_abi
 	if [ "${host_abi}" = "purecap" ]; then
@@ -3831,15 +3856,12 @@ download_hybridset_pkg_from_repo() {
 }
 
 download_hybridset_from_repo() {
-	local arch oldpkgname pkgname
-
-	_jget arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
+	local oldpkgname pkgname
 
 	hybridset_list | while mapfile_read_loop_redir pkgname; do
 		msg "Hybrid ABI package fetch: installing ${pkgname}."
 
-		hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" \
-		    install -q "${pkgname}"
+		hybridset_pkgcmd "${MASTERMNT}" "/" install -q "${pkgname}"
 	done
 
 	# Regenerate hints files for installed packages.

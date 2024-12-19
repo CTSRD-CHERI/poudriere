@@ -88,6 +88,7 @@ Options for -d:
 Options for -s and -k:
     -p tree       -- Specify which ports tree to start/stop the jail with.
     -z set        -- Specify which SET the jail to start/stop with.
+    -H repository -- Specify what repository for host packages to start/stop the jail with.
 EOF
 	exit ${EX_USAGE}
 }
@@ -1148,6 +1149,7 @@ QUIET=0
 NAMEONLY=0
 PTNAME=default
 SETNAME=""
+HYBRIDSET_REPO=""
 XDEV=1
 BUILD=0
 GIT_DEPTH=--depth=1
@@ -1158,7 +1160,7 @@ set_command() {
 	COMMAND="$1"
 }
 
-while getopts "bBiJ:j:v:a:z:m:nf:M:sdkK:lqcip:r:uU:t:z:P:S:DxXC:yo:" FLAG; do
+while getopts "bBiJ:j:v:a:z:m:nf:M:sdkK:lqcip:r:uU:t:z:P:S:DxXC:yo:H:" FLAG; do
 	case "${FLAG}" in
 		b)
 			BUILD=1
@@ -1267,6 +1269,10 @@ while getopts "bBiJ:j:v:a:z:m:nf:M:sdkK:lqcip:r:uU:t:z:P:S:DxXC:yo:" FLAG; do
 		z)
 			[ -n "${OPTARG}" ] || err 1 "Empty set name"
 			SETNAME="${OPTARG}"
+			;;
+		H)
+			[ -n "${OPTARG}" ] || err 1 "Empty repository name"
+			HYBRIDSET_REPO="${OPTARG}"
 			;;
 		*)
 			echo "Unknown flag '${FLAG}'"
