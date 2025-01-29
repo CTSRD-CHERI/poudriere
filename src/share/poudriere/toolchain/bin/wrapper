@@ -38,10 +38,10 @@ if [ -n "${QEMU_EMULATING}" ]; then
 else
 	arch_cflags=""
 fi
-# FreeBSD downgrades -Wimplicit-function-declaration to a warning within
+# FreeBSD downgrades -Wimplicit-{int,function-declaration} to a warning within
 # contrib/llvm-project and FreeBSD ports assume they would not fail to build
 # in such a case.
-arch_cflags="${arch_cflags} -Wno-implicit-function-declaration"
+arch_cflags="${arch_cflags} -Wno-implicit-int -Wno-implicit-function-declaration"
 arch_objdump_flags=""
 case "${arch}" in
 aarch64)
