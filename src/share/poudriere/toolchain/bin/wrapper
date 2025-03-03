@@ -83,7 +83,10 @@ aarch64*c*)
 	else
 		codeptr_flags=""
 	fi
-	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi} ${tls_flags} ${vararg_flags} ${codeptr_flags}"
+	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi}"
+	arch_cflags="${arch_cflags} --start-no-unused-arguments"
+	arch_cflags="${arch_cflags} ${tls_flags} ${vararg_flags} ${codeptr_flags}"
+	arch_cflags="${arch_cflags} --end-no-unused-arguments"
 	arch_ldflags="${codeptr_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
