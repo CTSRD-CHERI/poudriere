@@ -42,6 +42,7 @@ fi
 # contrib/llvm-project and FreeBSD ports assume they would not fail to build
 # in such a case.
 arch_cflags="${arch_cflags} -Wno-implicit-int -Wno-implicit-function-declaration"
+arch_ldflags=""
 arch_objdump_flags=""
 case "${arch}" in
 aarch64)
@@ -77,7 +78,13 @@ aarch64*c*)
 		tls_flags=""
 		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs"
 	fi
-	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi} ${tls_flags} ${vararg_flags}"
+	if [ "${CHERIBSD_VERSION}" -gt 20250127 ]; then
+		codeptr_flags="-cheri-codeptr-relocs"
+	else
+		codeptr_flags=""
+	fi
+	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi} ${tls_flags} ${vararg_flags} ${codeptr_flags}"
+	arch_ldflags="${codeptr_flags}"
 	arch_objdump_flags="--mattr=+morello"
 	;;
 riscv64)
@@ -146,7 +153,7 @@ export CPP="${LLVM_BIN}/clang-cpp ${arch_cflags}"
 export CPPFILT="${LLVM_BIN}/llvm-cxxfilt"
 export CXX="${LLVM_BIN}/clang++ ${arch_cflags}"
 export AS="${CC}"
-export LD="${LLVM_BIN}/ld.lld"
+export LD="${LLVM_BIN}/ld.lld ${arch_ldflags}"
 export NM="${LLVM_BIN}/llvm-nm"
 export OBJCOPY="${LLVM_BIN}/llvm-objcopy"
 export OBJDUMP="${LLVM_BIN}/llvm-objdump ${arch_objdump_flags}"
