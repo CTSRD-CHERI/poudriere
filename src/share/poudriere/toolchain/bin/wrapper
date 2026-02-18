@@ -5,15 +5,8 @@ die() {
 	exit 1
 }
 
-if [ -z "${CHERIBSD_VERSION}" ]; then
-	CHERIBSD_VERSION=$(awk '/^#define[[:space:]]+__CheriBSD_version/{print $3}' /usr/include/sys/param.h)
-fi
-if [ -z "${CHERIBSD_VERSION}" ]; then
-	CHERIBSD_VERSION=0
-fi
-
-TOOLCHAIN_ROOT="/toolchain"
-TOOLCHAIN_LOCALBASE="/toolchain/usr/local64"
+TOOLCHAIN_ROOTDIR="/toolchain"
+TOOLCHAIN_LOCALBASE="${TOOLCHAIN_ROOTDIR}/usr/local64"
 TOOLCHAIN_LOCALBASE_BIN="${TOOLCHAIN_LOCALBASE}/bin"
 TOOLCHAIN_LOCALBASE_LIB="${TOOLCHAIN_LOCALBASE}/lib"
 
@@ -34,67 +27,29 @@ fi
 # Compute toolchain flags.
 #
 if [ -n "${QEMU_EMULATING}" ]; then
+	# Explicitly build for the aarch64 target.
+	# The toolchain targets the native architecture by default.
 	arch_cflags="-target aarch64-unknown-freebsd15.0"
 else
 	arch_cflags=""
 fi
-# FreeBSD downgrades -Wimplicit-{int,function-declaration} to a warning within
-# contrib/llvm-project and FreeBSD ports assume they would not fail to build
-# in such a case.
-arch_cflags="${arch_cflags} -Wno-implicit-int -Wno-implicit-function-declaration"
-arch_ldflags=""
-arch_objdump_flags=""
 case "${arch}" in
 aarch64)
 	if [ -z "${MACHINE_ARCH_HYBRID}" ]; then
 		# Build for vanilla aarch64 which can be used on
 		# CheriBSD/Morello and FreeBSD/arm64.
-	else
-		if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
-			vararg_flags=""
-		else
-			vararg_flags="-Xclang -morello-vararg=new"
-		fi
-		arch_cflags="${arch_cflags} -march=morello -mabi=aapcs ${vararg_flags}"
+		arch_cflags="${arch_cflags} -march=morello+noa64c"
 	fi
-	arch_objdump_flags="--mattr=+morello"
 	;;
 aarch64*c*)
 	if [ "${arch}" = "aarch64cb" ]; then
-		mabi="purecap-benchmark"
-	else
-		mabi="purecap"
+		# Explicitly build for purecap-benchmark.
+		# llvm-morello's toolchain cannot detect that as the rootfs is
+		# built for purecap.
+		arch_cflags="${arch_cflags} -mabi=purecap-benchmark"
 	fi
-	if [ "${CHERIBSD_VERSION}" -le 20220314 ]; then
-		tls_flags="-femulated-tls"
-		vararg_flags=""
-	elif [ "${CHERIBSD_VERSION}" -le 20220828 ]; then
-		tls_flags=""
-		vararg_flags="-Xclang -morello-vararg=new"
-	elif [ "${CHERIBSD_VERSION}" -le 20230804 ]; then
-		tls_flags=""
-		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs=caller-only"
-	else
-		tls_flags=""
-		vararg_flags="-Xclang -morello-vararg=new -Xclang -morello-bounded-memargs"
-	fi
-	if [ "${CHERIBSD_VERSION}" -gt 20250127 ]; then
-		codeptr_flags="-cheri-codeptr-relocs"
-	else
-		codeptr_flags=""
-	fi
-	arch_cflags="${arch_cflags} -march=morello -mabi=${mabi}"
-	arch_cflags="${arch_cflags} --start-no-unused-arguments"
-	arch_cflags="${arch_cflags} ${tls_flags} ${vararg_flags} ${codeptr_flags}"
-	arch_cflags="${arch_cflags} --end-no-unused-arguments"
-	arch_ldflags="${codeptr_flags}"
-	arch_objdump_flags="--mattr=+morello"
 	;;
-riscv64)
-	arch_cflags="${arch_cflags} -march=rv64gcxcheri -mabi=lp64d -mno-relax"
-	;;
-riscv64c)
-	arch_cflags="${arch_cflags} -march=rv64gcxcheri -mabi=l64pc128d -mno-relax"
+riscv64|riscv64c)
 	;;
 *)
 	die "Unexpected architecture: ${arch}"
@@ -102,37 +57,27 @@ riscv64c)
 esac
 
 #
-# Use a toolchain from LLVM fore Morello for AArch64-based architectures.
+# Use a toolchain from LLVM for Morello for AArch64-based architectures.
 # Otherwise, use CHERI LLVM.
 #
 case "${arch}" in
 aarch64*)
-	LLVM_PREFIX="${TOOLCHAIN_LOCALBASE}/llvm-morello"
+	TOOLCHAIN_SUFFIX="morello"
 	;;
 *)
-	LLVM_PREFIX="${TOOLCHAIN_LOCALBASE}/llvm-cheri"
+	TOOLCHAIN_SUFFIX="cheri"
 	;;
 esac
-LLVM_BIN="${LLVM_PREFIX}/bin"
-LLVM_LIB="${LLVM_PREFIX}/lib"
 
 #
 # Use toolchain libraries and base system libraries from a jail or a host,
 # if the jail is emulated.
 #
+_LD_LIBRARY_PATH="${TOOLCHAIN_LOCALBASE_LIB}"
 if [ -n "${QEMU_EMULATING}" ]; then
 	TOOLCHAIN_BASE_LIB="/host/usr/local/lib:/host/usr/lib:/host/lib"
-else
-	case "${arch}" in
-	aarch64|riscv64)
-		TOOLCHAIN_BASE_LIB="/usr/lib"
-		;;
-	aarch64*c*|riscv64*c*)
-		TOOLCHAIN_BASE_LIB="/usr/lib64"
-		;;
-	esac
+	_LD_LIBRARY_PATH="${_LD_LIBRARY_PATH}:${TOOLCHAIN_BASE_LIB}"
 fi
-_LD_LIBRARY_PATH="${TOOLCHAIN_LOCALBASE_LIB}:${LLVM_LIB}:${TOOLCHAIN_BASE_LIB}"
 if [ -n "${QEMU_EMULATING}" ]; then
 	export LD_LIBRARY_PATH="${_LD_LIBRARY_PATH}"
 else
@@ -149,25 +94,30 @@ fi
 #
 # Overwrite variables from make.conf so that subprocesses directly utilities.
 #
-export ADDR2LINE="${LLVM_BIN}/llvm-addr2line"
-export AR="${LLVM_BIN}/llvm-ar"
-export CC="${LLVM_BIN}/clang ${arch_cflags}"
-export CPP="${LLVM_BIN}/clang-cpp ${arch_cflags}"
-export CPPFILT="${LLVM_BIN}/llvm-cxxfilt"
-export CXX="${LLVM_BIN}/clang++ ${arch_cflags}"
+export ADDR2LINE="${TOOLCHAIN_LOCALBASE_BIN}/llvm-addr2line-${TOOLCHAIN_SUFFIX}"
+export AR="${TOOLCHAIN_LOCALBASE_BIN}/llvm-ar-${TOOLCHAIN_SUFFIX}"
+export CC="${TOOLCHAIN_LOCALBASE_BIN}/clang-${TOOLCHAIN_SUFFIX} ${arch_cflags}"
+export CPP="${TOOLCHAIN_LOCALBASE_BIN}/clang-cpp-${TOOLCHAIN_SUFFIX} ${arch_cflags}"
+export CPPFILT="${TOOLCHAIN_LOCALBASE_BIN}/llvm-cxxfilt-${TOOLCHAIN_SUFFIX}"
+export CXX="${TOOLCHAIN_LOCALBASE_BIN}/clang++-${TOOLCHAIN_SUFFIX} ${arch_cflags}"
 export AS="${CC}"
-export LD="${LLVM_BIN}/ld.lld ${arch_ldflags}"
-export NM="${LLVM_BIN}/llvm-nm"
-export OBJCOPY="${LLVM_BIN}/llvm-objcopy"
-export OBJDUMP="${LLVM_BIN}/llvm-objdump ${arch_objdump_flags}"
-export RANLIB="${LLVM_BIN}/llvm-ranlib"
-export READELF="${LLVM_BIN}/llvm-readelf"
-export SIZE="${LLVM_BIN}/llvm-size"
-export STRINGS="${LLVM_BIN}/llvm-strings"
-export STRIP="${LLVM_BIN}/llvm-strip"
+export LD="${TOOLCHAIN_LOCALBASE_BIN}/ld.lld-${TOOLCHAIN_SUFFIX}"
+export NM="${TOOLCHAIN_LOCALBASE_BIN}/llvm-nm-${TOOLCHAIN_SUFFIX}"
+export OBJCOPY="${TOOLCHAIN_LOCALBASE_BIN}/llvm-objcopy-${TOOLCHAIN_SUFFIX}"
+export OBJDUMP="${TOOLCHAIN_LOCALBASE_BIN}/llvm-objdump-${TOOLCHAIN_SUFFIX}"
+export RANLIB="${TOOLCHAIN_LOCALBASE_BIN}/llvm-ranlib-${TOOLCHAIN_SUFFIX}"
+export READELF="${TOOLCHAIN_LOCALBASE_BIN}/llvm-readelf-${TOOLCHAIN_SUFFIX}"
+export SIZE="${TOOLCHAIN_LOCALBASE_BIN}/llvm-size-${TOOLCHAIN_SUFFIX}"
+export STRINGS="${TOOLCHAIN_LOCALBASE_BIN}/llvm-strings-${TOOLCHAIN_SUFFIX}"
+export STRIP="${TOOLCHAIN_LOCALBASE_BIN}/llvm-strip-${TOOLCHAIN_SUFFIX}"
 export XCC="${CC}"
 export XCPP="${CPP}"
 export XCXX="${CXX}"
+
+#
+# Point the toolchain wrapper at the correct root directory.
+#
+export _LLVM_ROOTDIR="${TOOLCHAIN_ROOTDIR}"
 
 #
 # Finally, execute the program.
