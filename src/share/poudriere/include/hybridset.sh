@@ -75,9 +75,11 @@ hybridset_pkgcmd() {
 	local rootdir="$2"
 	local pkgrootdir="$3"
 	shift 3
-	local etcdir host_abi pkgcmd
+	local etcdir host_abi pkgcmd target_arch
 
-	case "${arch#*.}" in
+	target_arch="${arch#*.}"
+	target_arch="${target_arch%+*}"
+	case "${target_arch}" in
 	aarch64|riscv64)
 		etcdir="pkg"
 		;;

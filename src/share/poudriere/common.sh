@@ -2695,6 +2695,7 @@ need_emulation() {
 
 	# kern.supported_archs is a list of TARGET_ARCHs.
 	target_arch="${wanted_arch#*.}"
+	target_arch="${target_arch%+*}"
 
 	# Check the list of supported archs from the kernel.
 	# DragonFly does not have kern.supported_archs, fallback to
