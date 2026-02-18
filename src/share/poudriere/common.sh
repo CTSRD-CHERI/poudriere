@@ -3763,7 +3763,7 @@ download_from_repo_check_pkg() {
 }
 
 download_toolchain_from_repo() {
-	local arch os version
+	local arch etcdir os target_arch version
 
 	_jget os ${JAILNAME} os || err 1 "Missing os metadata for jail"
 	[ "${os}" = "CheriBSD" ] || err 1 "Unexpected OS: ${os}"
@@ -3772,7 +3772,36 @@ download_toolchain_from_repo() {
 
 	msg "Installing toolchain for ${os} ${version} ${arch}"
 
+	target_arch="${arch#*.}"
+	target_arch="${target_arch%+*}"
+	case "${target_arch}" in
+	aarch64|riscv64)
+		etcdir="pkg"
+		;;
+	aarch64*c*|riscv64*c*)
+		etcdir="pkg64"
+		;;
+	*)
+		err 1 "Unexpected architecture: ${arch}"
+		;;
+	esac
+
 	cp -a "${SCRIPTPREFIX}/toolchain" "${MASTERMNT}/"
+
+	if [ "${HOST_OS}" != "CheriBSD" ]; then
+		# Use host-specific packages for toolchain and replacement
+		# packages.
+		cat >"${MASTERMNT}/etc/${etcdir}/CheriBSD.conf" <<-EOF
+host: {
+  url: "http://pkg.CheriBSD.org/\${ABI}/${PTNAME}",
+  mirror_type: "none",
+  signature_type: "fingerprints",
+  fingerprints: "/usr/share/keys/pkg",
+  enabled: yes
+}
+EOF
+	fi
+
 	mkdir -p "${MASTERMNT}/toolchain/usr/share/keys/pkg"
 	cp -a "${MASTERMNT}/usr/share/keys/pkg/trusted" \
 	    "${MASTERMNT}/toolchain/usr/share/keys/pkg/trusted"
