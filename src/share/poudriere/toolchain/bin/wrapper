@@ -55,6 +55,11 @@ riscv64|riscv64c)
 	die "Unexpected architecture: ${arch}"
 	;;
 esac
+arch_cppflags="${arch_cflags}"
+# Pass the --undefined-version flag to the linker. LLVM 17 changes the default
+# for that and our ports versions do not build without it.
+arch_cflags="${arch_cflags} -Wl,--undefined-version"
+arch_linkerflags="--undefined-version"
 
 #
 # Use a toolchain from LLVM for Morello for AArch64-based architectures.
@@ -97,11 +102,11 @@ fi
 export ADDR2LINE="${TOOLCHAIN_LOCALBASE_BIN}/llvm-addr2line-${TOOLCHAIN_SUFFIX}"
 export AR="${TOOLCHAIN_LOCALBASE_BIN}/llvm-ar-${TOOLCHAIN_SUFFIX}"
 export CC="${TOOLCHAIN_LOCALBASE_BIN}/clang-${TOOLCHAIN_SUFFIX} ${arch_cflags}"
-export CPP="${TOOLCHAIN_LOCALBASE_BIN}/clang-cpp-${TOOLCHAIN_SUFFIX} ${arch_cflags}"
+export CPP="${TOOLCHAIN_LOCALBASE_BIN}/clang-cpp-${TOOLCHAIN_SUFFIX} ${arch_cppflags}"
 export CPPFILT="${TOOLCHAIN_LOCALBASE_BIN}/llvm-cxxfilt-${TOOLCHAIN_SUFFIX}"
 export CXX="${TOOLCHAIN_LOCALBASE_BIN}/clang++-${TOOLCHAIN_SUFFIX} ${arch_cflags}"
 export AS="${CC}"
-export LD="${TOOLCHAIN_LOCALBASE_BIN}/ld.lld-${TOOLCHAIN_SUFFIX}"
+export LD="${TOOLCHAIN_LOCALBASE_BIN}/ld.lld-${TOOLCHAIN_SUFFIX} ${arch_linkerflags}"
 export NM="${TOOLCHAIN_LOCALBASE_BIN}/llvm-nm-${TOOLCHAIN_SUFFIX}"
 export OBJCOPY="${TOOLCHAIN_LOCALBASE_BIN}/llvm-objcopy-${TOOLCHAIN_SUFFIX}"
 export OBJDUMP="${TOOLCHAIN_LOCALBASE_BIN}/llvm-objdump-${TOOLCHAIN_SUFFIX}"
