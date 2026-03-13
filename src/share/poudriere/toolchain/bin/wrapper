@@ -58,7 +58,7 @@ esac
 arch_cppflags="${arch_cflags}"
 # Pass the --undefined-version flag to the linker. LLVM 17 changes the default
 # for that and our ports versions do not build without it.
-arch_cflags="${arch_cflags} -Wl,--undefined-version"
+arch_cflags="${arch_cflags} --start-no-unused-arguments -Wl,--undefined-version --end-no-unused-arguments"
 arch_linkerflags="--undefined-version"
 
 #
