@@ -78,22 +78,21 @@ esac
 # Use toolchain libraries and base system libraries from a jail or a host,
 # if the jail is emulated.
 #
-_LD_LIBRARY_PATH="${TOOLCHAIN_LOCALBASE_LIB}"
 if [ -n "${QEMU_EMULATING}" ]; then
 	TOOLCHAIN_BASE_LIB="/host/usr/local/lib:/host/usr/lib:/host/lib"
-	_LD_LIBRARY_PATH="${_LD_LIBRARY_PATH}:${TOOLCHAIN_BASE_LIB}"
-fi
-if [ -n "${QEMU_EMULATING}" ]; then
-	export LD_LIBRARY_PATH="${_LD_LIBRARY_PATH}"
+	export LD_LIBRARY_PATH="${TOOLCHAIN_LOCALBASE_LIB}:${TOOLCHAIN_BASE_LIB}"
+	export PATH="/host/bin:/host/usr/bin"
+	SH_PATH="/host/bin/sh"
 else
 	case "${arch}" in
 	aarch64|riscv64)
-		export LD_LIBRARY_PATH="${_LD_LIBRARY_PATH}"
+		export LD_LIBRARY_PATH="${TOOLCHAIN_LOCALBASE_LIB}"
 		;;
 	aarch64*c*|riscv64*c*)
-		export LD_64_LIBRARY_PATH="${_LD_LIBRARY_PATH}"
+		export LD_64_LIBRARY_PATH="${TOOLCHAIN_LOCALBASE_LIB}"
 		;;
 	esac
+	SH_PATH="/bin/sh"
 fi
 
 #
@@ -129,52 +128,52 @@ export _LLVM_ROOTDIR="${TOOLCHAIN_ROOTDIR}"
 #
 case "${prog}" in
 addr2line)
-	${ADDR2LINE} "${@}"
+	${SH_PATH} ${ADDR2LINE} "${@}"
 	;;
 ar)
-	${AR} "${@}"
+	${SH_PATH} ${AR} "${@}"
 	;;
 as)
-	${AS} "${@}"
+	${SH_PATH} ${AS} "${@}"
 	;;
 c++|clang++)
-	${CXX} "${@}"
+	${SH_PATH} ${CXX} "${@}"
 	;;
 c++filt)
-	${CPPFILT} "${@}"
+	${SH_PATH} ${CPPFILT} "${@}"
 	;;
 cc|clang)
-	${CC} "${@}"
+	${SH_PATH} ${CC} "${@}"
 	;;
 cpp|clang-cpp)
-	${CPP} "${@}"
+	${SH_PATH} ${CPP} "${@}"
 	;;
 ld)
-	${LD} "${@}"
+	${SH_PATH} ${LD} "${@}"
 	;;
 nm)
-	${NM} "${@}"
+	${SH_PATH} ${NM} "${@}"
 	;;
 objcopy)
-	${OBJCOPY} "${@}"
+	${SH_PATH} ${OBJCOPY} "${@}"
 	;;
 objdump)
-	${OBJDUMP} "${@}"
+	${SH_PATH} ${OBJDUMP} "${@}"
 	;;
 ranlib)
-	${RANLIB} "${@}"
+	${SH_PATH} ${RANLIB} "${@}"
 	;;
 readelf)
-	${READELF} "${@}"
+	${SH_PATH} ${READELF} "${@}"
 	;;
 size)
-	${SIZE} "${@}"
+	${SH_PATH} ${SIZE} "${@}"
 	;;
 strings)
-	${STRINGS} "${@}"
+	${SH_PATH} ${STRINGS} "${@}"
 	;;
 strip)
-	${STRIP} "${@}"
+	${SH_PATH} ${STRIP} "${@}"
 	;;
 *)
 	die "Unexpected program: ${prog}."
