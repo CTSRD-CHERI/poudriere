@@ -3835,6 +3835,13 @@ EOF
 		err 1 "Failed to install ${toolchain}"
 	fi
 	hybridset_pkgcmd "${abi}" "${MASTERMNT}" "/toolchain" clean -aq
+
+	# Remove header files that conflict with in-base headers.
+	# This change should be removed once the headers are excluded from the
+	# toolchain package.
+	for header in stdalign.h; do
+		rm "${MASTERMNT}/toolchain/usr/local64/llvm-morello/lib/clang/17/include/${header}"
+	done
 }
 
 download_hybridset_pkg_from_repo() {
