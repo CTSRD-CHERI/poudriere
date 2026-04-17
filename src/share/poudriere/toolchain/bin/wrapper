@@ -22,6 +22,7 @@ if [ -z "${MACHINE_ARCH}" ]; then
 else
 	arch="${MACHINE_ARCH}"
 fi
+arch=${arch%+*}
 
 #
 # Compute toolchain flags.

@@ -71,25 +71,17 @@ hybridset_list() {
 
 hybridset_pkgcmd() {
 	[ $# -ge 3 ] || eargs hybridset_pkgcmd rootdir pkgrootdir
-	local arch="${1}"
+	local abi="${1}"
 	local rootdir="$2"
 	local pkgrootdir="$3"
 	shift 3
-	local etcdir host_abi pkgcmd target_arch
+	local etcdir host_abi pkgcmd
 
-	target_arch="${arch#*.}"
-	target_arch="${target_arch%+*}"
-	case "${target_arch}" in
-	aarch64|riscv64)
-		etcdir="pkg"
-		;;
-	aarch64*c*|riscv64*c*)
+	if [ "${abi}" = "purecap" ]; then
 		etcdir="pkg64"
-		;;
-	*)
-		err 1 "Unexpected architecture: ${arch}"
-		;;
-	esac
+	else
+		etcdir="pkg"
+	fi
 
 	get_host_abi host_abi
 	if [ "${host_abi}" = "purecap" ]; then

@@ -2648,13 +2648,14 @@ get_host_arch() {
 	setvar "${var_return}" "${_arch}"
 }
 
-get_host_abi() {
-	[ $# -eq 1 ] || eargs get_host_abi var_return
+get_abi() {
+	[ $# -eq 2 ] || eargs get_abi var_return
 	local var_return="$1"
-	local _host_arch
+	local _host_arch="$2"
 
-	get_host_arch _host_arch
-	case "${_host_arch#*.}" in
+	_host_arch="${_host_arch#*.}"
+	_host_arch="${_host_arch%+*}"
+	case "${_host_arch}" in
 	aarch64*c*|riscv*c*)
 		_abi="purecap"
 		;;
@@ -2663,6 +2664,24 @@ get_host_abi() {
 		;;
 	esac
 	setvar "${var_return}" "${_abi}"
+}
+
+get_host_abi() {
+	[ $# -eq 1 ] || eargs get_host_abi var_return
+	local var_return="$1"
+	local _host_arch
+
+	get_host_arch _host_arch
+	get_abi "${var_return}" "${_host_arch}"
+}
+
+get_jail_abi() {
+	[ $# -eq 1 ] || eargs get_jail_abi var_return
+	local var_return="$1"
+	local _jail_arch
+
+	_jget _jail_arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
+	get_abi "${var_return}" "${_jail_arch}"
 }
 
 check_emulation() {
@@ -3763,7 +3782,7 @@ download_from_repo_check_pkg() {
 }
 
 download_toolchain_from_repo() {
-	local arch etcdir os target_arch version
+	local abi arch etcdir header os target_arch version
 
 	_jget os ${JAILNAME} os || err 1 "Missing os metadata for jail"
 	[ "${os}" = "CheriBSD" ] || err 1 "Unexpected OS: ${os}"
@@ -3772,19 +3791,12 @@ download_toolchain_from_repo() {
 
 	msg "Installing toolchain for ${os} ${version} ${arch}"
 
-	target_arch="${arch#*.}"
-	target_arch="${target_arch%+*}"
-	case "${target_arch}" in
-	aarch64|riscv64)
-		etcdir="pkg"
-		;;
-	aarch64*c*|riscv64*c*)
+	get_jail_abi abi
+	if [ "${abi}" = "purecap" ]; then
 		etcdir="pkg64"
-		;;
-	*)
-		err 1 "Unexpected architecture: ${arch}"
-		;;
-	esac
+	else
+		etcdir="pkg"
+	fi
 
 	cp -a "${SCRIPTPREFIX}/toolchain" "${MASTERMNT}/"
 
@@ -3817,31 +3829,27 @@ EOF
 		err 1 "Unexpected architecture: ${arch}"
 		;;
 	esac
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" \
+	hybridset_pkgcmd "${abi}" "${MASTERMNT}" "/toolchain" \
 	    install -q "${toolchain}"
 	if [ $? -ne 0 ]; then
 		err 1 "Failed to install ${toolchain}"
 	fi
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/toolchain" clean -aq
+	hybridset_pkgcmd "${abi}" "${MASTERMNT}" "/toolchain" clean -aq
 }
 
 download_hybridset_pkg_from_repo() {
-	local arch host_abi pkgabi pkgcmd
+	local abi host_abi pkgabi pkgcmd
 
-	_jget arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
-
-	case "${arch#*.}" in
-	aarch64*c*|riscv64*c*)
-		;;
-	*)
+	get_jail_abi abi
+	if [ "${abi}" != "purecap" ]; then
 		# Hybrid ABI packages aren't needed for non-CheriABI targets.
 		return
-	esac
+	fi
 
 	msg "Bootstrapping hybrid ABI pkg."
 
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" install -q pkg
-	hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" update -q
+	hybridset_pkgcmd "${abi}" "${MASTERMNT}" "/" install -q pkg
+	hybridset_pkgcmd "${abi}" "${MASTERMNT}" "/" update -q
 
 	get_host_abi host_abi
 	if [ "${host_abi}" = "purecap" ]; then
@@ -3861,14 +3869,14 @@ download_hybridset_pkg_from_repo() {
 }
 
 download_hybridset_from_repo() {
-	local arch oldpkgname pkgname
+	local abi oldpkgname pkgname
 
-	_jget arch ${JAILNAME} arch || err 1 "Missing os metadata for jail"
+	get_jail_abi abi
 
 	hybridset_list | while mapfile_read_loop_redir pkgname; do
 		msg "Hybrid ABI package fetch: installing ${pkgname}."
 
-		hybridset_pkgcmd "${arch}" "${MASTERMNT}" "/" \
+		hybridset_pkgcmd "${abi}" "${MASTERMNT}" "/" \
 		    install -q "${pkgname}"
 	done
 
@@ -8193,14 +8201,13 @@ prepare_ports() {
 	local log log_top
 	local n resuming_build
 	local cache_dir sflag delete_pkg_list shash_bucket
-	local arch
+	local abi
 
 	pkgqueue_init
-	_jget arch ${JAILNAME} arch
-	case "${arch#*.}" in
-	aarch64*c*)
+	get_jail_abi abi
+	if [ "${abi}" = "purecap" ]; then
 		hybridset_init
-	esac
+	fi
 
 	cd "${MASTER_DATADIR}"
 	[ "${SHASH_VAR_PATH}" = "var/cache" ] || \

@@ -710,6 +710,8 @@ install_from_ftp() {
 	DISTS="${DISTS} base games"
 	[ -z "${SRCPATH}" -a "${NO_SRC:-no}" = "no" ] && DISTS="${DISTS} src"
 	case "${ARCH##*.}" in
+	*+nocheri)
+		;;
 	aarch64cb)
 		DISTS="${DISTS} lib64cb"
 		;&
